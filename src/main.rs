@@ -1,5 +1,4 @@
 use clap::Parser;
-use reqwest;
 use anyhow::Result;
 use tokio;
 
@@ -21,7 +20,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = overseer::Trading212::new(&trading_212_base_api, &api_key);
     let res = client.fetch_account_metadata()
         .await;
-    println!("The response was {}", res);
+
+
+    let res = client.fetch_portfolio_positions()
+        .await;
+    match res {
+        Ok(_) => println!("ran successfully!"),
+        Err(e) => println!("Error {} occured", e),
+    }
+
     Ok(())
     
 }
