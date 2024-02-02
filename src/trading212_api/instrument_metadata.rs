@@ -8,13 +8,13 @@ struct TimeEvent {
 
 #[derive(Deserialize)]
 struct WorkingSchedule {
-    id: int64,
+    id: i64,
     timeEvents: Vec<TimeEvent>,
 }
 
 #[derive(Deserialize)] 
 struct Exchange {
-    id: int64,
+    id: i64,
     name: String,
     work_schedules: Vec<WorkingSchedule>,
 }
