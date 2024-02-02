@@ -24,7 +24,7 @@ pub struct Issue {
 #[derive(Debug, Deserialize)]
 pub struct PieMetadata {
     cash: f32,
-    id: int64,
+    id: i64,
     progress: f32,
     result: InvestmentResult,
     status: Option<String>,
@@ -47,7 +47,7 @@ pub struct AccountBucketDetailedResponse {
     endDate: String,
     goal: f32,
     icon: String,
-    id: int64,
+    id: i64,
     initialInvestment: f32,
     name: String,
     pubicUrl: String,
@@ -90,7 +90,7 @@ impl Trading212 {
         return output
     }
 
-    pub async fn fetch_pie(&self, id: int64) -> Result<OpenPosition, reqwest::Error> {
+    pub async fn fetch_pie(&self, id: i64) -> Result<OpenPosition, reqwest::Error> {
         let client = &self.client;
         let target_url = format!("{}equity/account/portfolio/{id}", self.base_url );
 
