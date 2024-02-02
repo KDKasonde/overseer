@@ -32,7 +32,7 @@ pub struct HistoricalDividendItem {
 pub struct ExportItem {
     dataIncluded: ReportDataIncluded,
     downloadLink: String,
-    reportId: int64,
+    reportId: i64,
     status: String,
     timeFrom: String,
     timeTo: String,
@@ -45,17 +45,17 @@ pub struct HistoricalOrder {
     dateModified: String,
     executor: String,
     fillCost: f32,
-    fillId: int64,
+    fillId: i64,
     fillPrice: f32,
     fillResult: f32,
     fillType: String,
     filledQuantity: f32,
     filledValue: f32,
-    id: int64,
+    id: i64,
     limitPrice: f32,
     orderedQuantity: f32,
     orderedValue: f32,
-    parentOrder: int64,
+    parentOrder: i64,
     status: String,
     stopPrice: f32,
     taxes: Vec<InstrumentTax>,
@@ -96,7 +96,7 @@ pub struct TransactionList {
 }
 
 impl Trading212 {
-    pub async fn fetch_historical_orders(&self, cursor: Option<int64>, ticker: &str, limit: Option<int64>) -> Result<HistoricalOrderList, reqwest::Error>{
+    pub async fn fetch_historical_orders(&self, cursor: Option<i64>, ticker: &str, limit: Option<i64>) -> Result<HistoricalOrderList, reqwest::Error>{
         let client = &self.client;
         let target_url = format!("{}equity/history/orders", self.base_url );
        
@@ -137,7 +137,7 @@ impl Trading212 {
         return output
     }
 
-    pub async fn fetch_paid_dividends(&self, cursor: Option<int64>, ticker: &str, limit: Option<int64>) -> Result<HistoricalDividendItemList, reqwest::Error> {
+    pub async fn fetch_paid_dividends(&self, cursor: Option<i64>, ticker: &str, limit: Option<i64>) -> Result<HistoricalDividendItemList, reqwest::Error> {
         let client = &self.client;
         let target_url = format!("{}equity/account/portfolio/{ticker}", self.base_url );
 
@@ -179,7 +179,7 @@ impl Trading212 {
     }
 
 
-    pub async fn fetch_transaction_list(&self, cursor: Option<int64>, limit: Option<int64>) -> Result<TransactionList, reqwest::Error> {
+    pub async fn fetch_transaction_list(&self, cursor: Option<i64>, limit: Option<i64>) -> Result<TransactionList, reqwest::Error> {
         let client = &self.client;
         let target_url = format!("{}equity/account/portfolio/{ticker}", self.base_url );
 

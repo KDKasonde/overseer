@@ -1,3 +1,5 @@
+pub mod trading212_api;
+
 use serde::Deserialize;
 use reqwest::{
     Client,
