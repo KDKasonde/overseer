@@ -2,6 +2,8 @@ use super::Trading212;
 
 use serde::Deserialize;
 
+use serde_json;
+
 #[derive(Debug, Deserialize)]
 pub struct Cash {
     blocked: f32,
@@ -15,13 +17,13 @@ pub struct Cash {
 
 #[derive(Debug, Deserialize)]
 pub struct Metadata {
-    currencyCode: String,
-    id: u64,
+    pub currencyCode: String,
+    pub id: u64,
 }
 
 impl Trading212 {
     
-    pub async fn fetch_account_cash(&self) -> Result<Cash, reqwest::Error> {
+    pub async fn fetch_account_cash(&self) -> Cash {
         
         let client = &self.client;
         let target_url = format!("{}equity/account/cash", self.base_url );
@@ -31,7 +33,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<Cash>()
@@ -43,11 +45,21 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+        
         return output
         
     }
 
-    pub async fn fetch_account_metadata(&self) -> Result<Metadata, reqwest::Error> {
+    pub async fn fetch_account_metadata(&self) -> Metadata {
         
         let client = &self.client;
         let target_url = format!("{}equity/account/info", self.base_url );
@@ -57,7 +69,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<Metadata>()
@@ -67,6 +79,15 @@ impl Trading212 {
                 // This should not panic unless there is something wrong with auth, the url or the
                 // headers.
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
+            }
+        }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
             }
         }; 
         

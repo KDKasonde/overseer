@@ -19,17 +19,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let trading_212_base_api = "https://live.trading212.com/api/v0/".to_string();
 
     let client = Trading212::new(&trading_212_base_api, &api_key);
-    let res = client.fetch_account_metadata()
-        .await;
-
-
-    let res = client.fetch_portfolio_positions()
-        .await;
-    match res {
-        Ok(_) => println!("ran successfully!"),
-        Err(e) => println!("Error {} occured", e),
-    }
-
+    
+    println!("Vendor: Trading 212");
+    
+    let account_info = client.fetch_account_metadata().await;        
+    
+    println!("id: {}\nActive currency: {}",account_info.id, account_info.currencyCode);
+    
     Ok(())
     
 }

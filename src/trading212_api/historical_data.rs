@@ -98,7 +98,7 @@ pub struct TransactionList {
 }
 
 impl Trading212 {
-    pub async fn fetch_historical_orders(&self, cursor: Option<i64>, ticker: &str, limit: Option<i64>) -> Result<HistoricalOrderList, reqwest::Error>{
+    pub async fn fetch_historical_orders(&self, cursor: Option<i64>, ticker: &str, limit: Option<i64>) -> HistoricalOrderList {
         let client = &self.client;
         let target_url = format!("{}equity/history/orders", self.base_url );
        
@@ -125,7 +125,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<HistoricalOrderList>()
@@ -137,10 +137,20 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+        
         return output
     }
 
-    pub async fn fetch_paid_dividends(&self, cursor: Option<i64>, ticker: &str, limit: Option<i64>) -> Result<HistoricalDividendItemList, reqwest::Error> {
+    pub async fn fetch_paid_dividends(&self, cursor: Option<i64>, ticker: &str, limit: Option<i64>) -> HistoricalDividendItemList {
         let client = &self.client;
         let target_url = format!("{}history/dividends", self.base_url );
 
@@ -167,7 +177,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<HistoricalDividendItemList>()
@@ -179,11 +189,19 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
         return output
     }
 
 
-    pub async fn fetch_transaction_list(&self, cursor: Option<i64>, limit: Option<i64>) -> Result<TransactionList, reqwest::Error> {
+    pub async fn fetch_transaction_list(&self, cursor: Option<i64>, limit: Option<i64>) -> TransactionList {
         let client = &self.client;
         let target_url = format!("{}history/transactions", self.base_url );
 
@@ -209,7 +227,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<TransactionList>()
@@ -221,6 +239,16 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+        
         return output
     }
 

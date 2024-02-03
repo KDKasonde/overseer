@@ -68,7 +68,7 @@ pub struct Pie {
 
 impl Trading212 {
     
-    pub async fn fetch_all_pies_info(&self) -> Result<PieList, reqwest::Error>{
+    pub async fn fetch_all_pies_info(&self) -> PieList {
         let client = &self.client;
         let target_url = format!("{}equity/pies", self.base_url );
 
@@ -77,7 +77,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<PieList>()
@@ -89,10 +89,20 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+        
         return output
     }
 
-    pub async fn fetch_pie(&self, id: i64) -> Result<Pie, reqwest::Error> {
+    pub async fn fetch_pie(&self, id: i64) -> Pie {
         let client = &self.client;
         let target_url = format!("{}equity/account/portfolio/{id}", self.base_url );
 
@@ -101,7 +111,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<Pie>()
@@ -113,6 +123,16 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+        
         return output
     }
 }

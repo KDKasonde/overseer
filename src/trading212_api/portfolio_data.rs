@@ -24,7 +24,7 @@ pub struct AllOpenPositions {
 }
 
 impl Trading212 {
-    pub async fn fetch_portfolio_positions(&self) -> Result<AllOpenPositions, reqwest::Error>{
+    pub async fn fetch_portfolio_positions(&self) -> AllOpenPositions {
         let client = &self.client;
         let target_url = format!("{}equity/portfolio", self.base_url );
 
@@ -33,7 +33,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<AllOpenPositions>()
@@ -45,9 +45,20 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+    
         return output
     }
-    pub async fn fetch_position(&self, ticker: &str) -> Result<OpenPosition, reqwest::Error> {
+    
+    pub async fn fetch_position(&self, ticker: &str) -> OpenPosition {
         let client = &self.client;
         let target_url = format!("{}equity/account/portfolio/{ticker}", self.base_url );
 
@@ -56,7 +67,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<OpenPosition>()
@@ -68,6 +79,16 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+        
         return output
     }
 }

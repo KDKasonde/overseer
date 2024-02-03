@@ -46,7 +46,7 @@ struct InstrumentList {
 }
 
 impl Trading212 { 
-    pub async fn fetch_available_exchanges(&self) -> Result<ExchangeList, reqwest::Error>{
+    pub async fn fetch_available_exchanges(&self) -> ExchangeList {
         let client = &self.client;
         let target_url = format!("{}equity/metadata/exchanges", self.base_url );
 
@@ -55,7 +55,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<ExchangeList>()
@@ -67,9 +67,20 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+        
         return output
     }
-    pub async fn fetch_available_instruments(&self) -> Result<InstrumentList, reqwest::Error> {
+    
+    pub async fn fetch_available_instruments(&self) -> InstrumentList {
         let client = &self.client;
         let target_url = format!("{}equity/metadata/instruments", self.base_url );
 
@@ -78,7 +89,7 @@ impl Trading212 {
             .send()
             .await;
         
-        let output = match res {
+        let res = match res {
             Ok(response) => { 
                 response
                     .json::<InstrumentList>()
@@ -90,6 +101,16 @@ impl Trading212 {
                 panic!("Response was not okay! Received the following error: \n\t{}", error);
             }
         }; 
+        
+        let output = match res {
+            Ok(response) => { 
+                response
+            },
+            Err(error)  => {
+                panic!("Derserialization failed, error: \n\t{}", error);
+            }
+        }; 
+        
         return output
     }
 }
