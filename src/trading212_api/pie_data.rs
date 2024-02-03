@@ -1,3 +1,5 @@
+use super::Trading212;
+
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -66,7 +68,7 @@ pub struct Pie {
 
 impl Trading212 {
     
-    pub async fn fetch_all_pies_info(&self) -> Result<AllOpenPositions, reqwest::Error>{
+    pub async fn fetch_all_pies_info(&self) -> Result<PieList, reqwest::Error>{
         let client = &self.client;
         let target_url = format!("{}equity/pies", self.base_url );
 
@@ -90,7 +92,7 @@ impl Trading212 {
         return output
     }
 
-    pub async fn fetch_pie(&self, id: i64) -> Result<OpenPosition, reqwest::Error> {
+    pub async fn fetch_pie(&self, id: i64) -> Result<Pie, reqwest::Error> {
         let client = &self.client;
         let target_url = format!("{}equity/account/portfolio/{id}", self.base_url );
 

@@ -1,9 +1,11 @@
+use super::Trading212;
+
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct TimeEvent {
     date: String,
-    type: String,
+    item_type: String,
 }
 
 #[derive(Deserialize)]
@@ -28,8 +30,8 @@ struct Instrument {
     min_trade_quantity: f32,
     name: String,
     short_name: String,
-    ticker: String,,
-    type: String,
+    ticker: String,
+    item_type: String,
     working_schedule_id: String,
 }
 

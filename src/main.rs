@@ -1,3 +1,4 @@
+use overseer::trading212_api::Trading212;
 use clap::Parser;
 use anyhow::Result;
 use tokio;
@@ -17,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let trading_212_base_api = "https://live.trading212.com/api/v0/".to_string();
 
-    let client = overseer::Trading212::new(&trading_212_base_api, &api_key);
+    let client = Trading212::new(&trading_212_base_api, &api_key);
     let res = client.fetch_account_metadata()
         .await;
 

@@ -1,3 +1,5 @@
+use super::Trading212;
+
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -25,7 +27,7 @@ pub struct HistoricalDividendItem {
     quantity: f32,
     reference: String,
     ticker: String,
-    type: String,
+    item_type: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,7 +50,7 @@ pub struct HistoricalOrder {
     fillId: i64,
     fillPrice: f32,
     fillResult: f32,
-    fillType: String,
+    fillitem_type: String,
     filledQuantity: f32,
     filledValue: f32,
     id: i64,
@@ -61,7 +63,7 @@ pub struct HistoricalOrder {
     taxes: Vec<InstrumentTax>,
     ticker: String,
     timeValidity: String,
-    type: String,
+    item_type: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -69,19 +71,19 @@ pub struct Transaction {
     amount: f32,
     dateTime: String,
     reference: String,
-    type: String,
+    item_type: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct HistoricalOrderList {
-    orders: Vec<HistoricalOrder>
-    nextPagePath: String,
+    orders: Vec<HistoricalOrder>,
+    next_page_path: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct HistoricalDividendItemList {
-    orders: Vec<HistoricalDividendItem>
-    nextPagePath: String,
+    orders: Vec<HistoricalDividendItem>,
+    next_page_path: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,10 +91,10 @@ pub struct ExportItemList {
     items: Vec<ExportItem>
 }
 
-#[derive(Debug, Derserialize)]
+#[derive(Debug, Deserialize)]
 pub struct TransactionList {
     items: Vec<Transaction>,
-    nextPagePath: String,
+    next_page_path: String,
 }
 
 impl Trading212 {
@@ -100,7 +102,7 @@ impl Trading212 {
         let client = &self.client;
         let target_url = format!("{}equity/history/orders", self.base_url );
        
-        let cursor - match cursor {
+        let cursor = match cursor {
             Some(value) => value,
             None => 1
         };
@@ -108,8 +110,8 @@ impl Trading212 {
         let limit = match limit {
             Some(value) => {
                 match value {
-                    value < 0 => 1,
-                    value > 50 => 50,
+                    ..= 0 => 1,
+                    50.. => 50,
                     _ => value
                 }
             },
@@ -118,7 +120,8 @@ impl Trading212 {
 
         let res = client
             .get(target_url)
-            .query(&[("cursor", cursor), ("ticker", ticker), ("limit", limit)])
+            .query(&[("cursor", cursor), ("limit", limit)])
+            .query(&[("ticker", ticker)])
             .send()
             .await;
         
@@ -139,9 +142,9 @@ impl Trading212 {
 
     pub async fn fetch_paid_dividends(&self, cursor: Option<i64>, ticker: &str, limit: Option<i64>) -> Result<HistoricalDividendItemList, reqwest::Error> {
         let client = &self.client;
-        let target_url = format!("{}equity/account/portfolio/{ticker}", self.base_url );
+        let target_url = format!("{}history/dividends", self.base_url );
 
-        let cursor - match cursor {
+        let cursor = match cursor {
             Some(value) => value,
             None => 1
         };
@@ -149,8 +152,8 @@ impl Trading212 {
         let limit = match limit {
             Some(value) => {
                 match value {
-                    value < 0 => 1,
-                    value > 50 => 50,
+                    ..= 0 => 1,
+                    50.. => 50,
                     _ => value
                 }
             },
@@ -159,7 +162,8 @@ impl Trading212 {
 
         let res = client
             .get(target_url)
-            .query(&[("cursor", cursor), ("ticker", ticker), ("limit", limit)])
+            .query(&[("cursor", cursor), ("limit", limit)])
+            .query(&[("ticker", ticker)])
             .send()
             .await;
         
@@ -181,9 +185,9 @@ impl Trading212 {
 
     pub async fn fetch_transaction_list(&self, cursor: Option<i64>, limit: Option<i64>) -> Result<TransactionList, reqwest::Error> {
         let client = &self.client;
-        let target_url = format!("{}equity/account/portfolio/{ticker}", self.base_url );
+        let target_url = format!("{}history/transactions", self.base_url );
 
-        let cursor - match cursor {
+        let cursor = match cursor {
             Some(value) => value,
             None => 1
         };
@@ -191,8 +195,8 @@ impl Trading212 {
         let limit = match limit {
             Some(value) => {
                 match value {
-                    value < 0 => 1,
-                    value > 50 => 50,
+                    ..= 0 => 1,
+                    50.. => 50,
                     _ => value
                 }
             },
