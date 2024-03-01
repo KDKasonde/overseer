@@ -3,18 +3,21 @@ use super::Trading212;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+#[serde(rename = "camelCase")]
 struct TimeEvent {
     date: String,
     item_type: String,
 }
 
 #[derive(Deserialize)]
+#[serde(rename = "camelCase")]
 struct WorkingSchedule {
     id: i64,
-    timeEvents: Vec<TimeEvent>,
+    time_events: Vec<TimeEvent>,
 }
 
 #[derive(Deserialize)] 
+#[serde(rename = "camelCase")]
 struct Exchange {
     id: i64,
     name: String,
@@ -22,6 +25,7 @@ struct Exchange {
 }
 
 #[derive(Deserialize)]
+#[serde(rename = "camelCase")]
 struct Instrument {
     added_on: String,
     cuurency_code: String,
@@ -36,11 +40,13 @@ struct Instrument {
 }
 
 #[derive(Deserialize)]
+#[serde(rename = "camelCase")]
 struct ExchangeList {
     exchanges: Vec<Exchange>,
 }
 
 #[derive(Deserialize)]
+#[serde(rename = "camelCase")]
 struct InstrumentList {
     instruments: Vec<Instrument>,
 }

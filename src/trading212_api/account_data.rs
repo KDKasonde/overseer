@@ -2,22 +2,22 @@ use super::Trading212;
 
 use serde::Deserialize;
 
-use serde_json;
-
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Cash {
-    blocked: f32,
-    free: f32,
-    invested: f32,
-    pieCash: f32,
-    ppl: f32,
-    result: f32,
-    total: f32,
+    pub blocked: Option<f32>,
+    pub free: f32,
+    pub invested: f32,
+    pub pie_cash: f32,
+    pub ppl: f32,
+    pub result: f32,
+    pub total: f32,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Metadata {
-    pub currencyCode: String,
+    pub currency_code: String,
     pub id: u64,
 }
 

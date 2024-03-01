@@ -3,27 +3,30 @@ use super::Trading212;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InstrumentTax {
-    fillId: String,
+    fill_id: String,
     name: String,
     quantity: f32,
-    timeCharged: String,
+    time_charged: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReportDataIncluded {
-    includeDividends: bool,
-    includeInterest: bool,
-    includeOrders: bool,
-    includeTransactions: bool,
+    include_dividends: bool,
+    include_interest: bool,
+    include_orders: bool,
+    include_transactions: bool,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HistoricalDividendItem {
     amount: f32,
-    amountInEuro: f32,
-    grossAmountPerShare: f32,
-    paidOn: String,
+    amount_in_euro: f32,
+    gross_amount_per_share: f32,
+    paid_on: String,
     quantity: f32,
     reference: String,
     ticker: String,
@@ -31,67 +34,74 @@ pub struct HistoricalDividendItem {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExportItem {
-    dataIncluded: ReportDataIncluded,
-    downloadLink: String,
-    reportId: i64,
+    data_included: ReportDataIncluded,
+    download_link: String,
+    report_id: i64,
     status: String,
-    timeFrom: String,
-    timeTo: String,
+    time_from: String,
+    time_to: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HistoricalOrder {
-    dateCreated: String,
-    dateExecuted: String,
-    dateModified: String,
+    date_created: String,
+    date_executed: String,
+    date_modified: String,
     executor: String,
-    fillCost: f32,
-    fillId: i64,
-    fillPrice: f32,
-    fillResult: f32,
-    fillitem_type: String,
-    filledQuantity: f32,
-    filledValue: f32,
+    fill_cost: f32,
+    fill_id: i64,
+    fill_price: f32,
+    fill_result: f32,
+    fill_item_type: String,
+    filled_quantity: f32,
+    filled_value: f32,
     id: i64,
-    limitPrice: f32,
-    orderedQuantity: f32,
-    orderedValue: f32,
-    parentOrder: i64,
+    limit_price: f32,
+    ordered_quantity: f32,
+    ordered_value: f32,
+    parent_order: i64,
     status: String,
-    stopPrice: f32,
+    stop_price: f32,
     taxes: Vec<InstrumentTax>,
     ticker: String,
-    timeValidity: String,
+    time_validity: String,
     item_type: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Transaction {
     amount: f32,
-    dateTime: String,
+    date_time: String,
     reference: String,
     item_type: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HistoricalOrderList {
     orders: Vec<HistoricalOrder>,
     next_page_path: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HistoricalDividendItemList {
     orders: Vec<HistoricalDividendItem>,
     next_page_path: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExportItemList {
     items: Vec<ExportItem>
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TransactionList {
     items: Vec<Transaction>,
     next_page_path: String,

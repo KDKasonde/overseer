@@ -3,27 +3,31 @@ use super::Trading212;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "camelCase")]
 pub struct DividendDetails {
     gained: f32,
-    inCash: f32,
+    in_cash: f32,
     reinvested: f32,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "camelCase")]
 pub struct InvestmentResult {
-    investedValue: f32,
+    invested_value: f32,
     result: f32,
-    resultCoef: f32,
+    result_coef: f32,
     value: f32,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "camelCase")]
 pub struct Issue {
-    Name: String,
-    Severity: String,
+    name: String,
+    severity: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "camelCase")]
 pub struct PieMetadata {
     cash: f32,
     id: i64,
@@ -33,34 +37,38 @@ pub struct PieMetadata {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "camelCase")]
 pub struct InstrumentDetails {
-    currentShare: f32,
-    expectedShare: f32,
+    current_share: f32,
+    expected_share: f32,
     issues: Vec<Issue>,
-    ownedQuantity: f32,
+    owned_quantity: f32,
     result: Vec<InvestmentResult>,
     ticker: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "camelCase")]
 pub struct AccountBucketDetailedResponse {
-    creationDate: String,
-    dividendCashAction: String,
-    endDate: String,
+    creation_date: String,
+    dividend_cash_action: String,
+    end_date: String,
     goal: f32,
     icon: String,
     id: i64,
-    initialInvestment: f32,
+    initial_investment: f32,
     name: String,
-    pubicUrl: String,
+    pubic_url: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "camelCase")]
 pub struct PieList {
     pies: Vec<PieMetadata>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "camelCase")]
 pub struct Pie {
     instruments: Vec<InstrumentDetails>,
     settings: Vec<AccountBucketDetailedResponse>,
