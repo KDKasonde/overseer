@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.4.18", features = ["derive"] }
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["json", "cookies"] }
 scraper = "0.19.0"
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"

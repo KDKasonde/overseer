@@ -1,5 +1,5 @@
 use overseer::trading212_api::Trading212;
-use overseer::hl_client::{self, login_step_one};
+use overseer::hl_client::{self, HL};
 use clap::Parser;
 use anyhow::Result;
 use tokio;
@@ -21,9 +21,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dob = &args.dob;
     let api_key = &args.api_key;
     
-    let base_url = "https://online.hl.co.uk/my-accounts/login-step-one";
-
-    login_step_one(base_url, username, dob).await;
+    let base_url = "https://online.hl.co.uk";
+    let hl = HL::new(base_url);
+    hl.login_step_one(username, dob).await;
 
     if let Some(api_key) = &args.api_key{
         let trading_212_base_api = "https://live.trading212.com/api/v0/".to_string();
