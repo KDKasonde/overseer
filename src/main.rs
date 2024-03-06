@@ -3,12 +3,14 @@ use overseer::hl_client::{self, HL};
 use clap::Parser;
 use anyhow::Result;
 use tokio;
+use std::env;
+use dotenv;
 
 #[derive(clap::Parser)]  
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    username: String,
-    dob: String,
+    username: Option<String>,
+    dob: Option<String>,
     api_key: Option<String>,
 }
 
@@ -21,10 +23,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dob = &args.dob;
     let api_key = &args.api_key;
     
+    let env_args = dotenv::dotenv().unwrap();
+    let username = env::var("HL_USERNAME").unwrap();
+    let date_of_birth = env::var("HL_DATE_OF_BIRTH").unwrap();
+    let password = env::var("HL_PASSWORD").unwrap();
+    let secure_number = env::var("HL_SECURE_NUMBER").unwrap();
+
     let base_url = "https://online.hl.co.uk";
     let hl = HL::new(base_url);
-    hl.login_step_one(username, dob).await;
-
+    hl.login(username, date_of_birth, password, secure_number).await;
+    hl.fetch_account_cash().await;
     if let Some(api_key) = &args.api_key{
         let trading_212_base_api = "https://live.trading212.com/api/v0/".to_string();
 
