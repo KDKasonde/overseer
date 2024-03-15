@@ -1,7 +1,7 @@
 mod myaccount;
 mod account_data;
 
-use std::{string, sync::Arc};
+use std::sync::Arc;
 use reqwest::{
     cookie::Jar, header, Client, Url
 };
@@ -97,21 +97,20 @@ impl HL {
         required_secure_number: Vec<usize>
     ) {
 
-        let mut  params = vec![("hl_vt".to_string(), hl_vt), ("password".to_string(), password)];
+        let mut  params = vec![("hl_vt".to_string(), hl_vt), ("online-password-verification".to_string(), password)];
 
         for (index, number) in required_secure_number.iter().enumerate() {
-            let input_name = format!("secure-number-[{}]", index+1).to_string();
+            let input_name = format!("secure-number[{}]", index+1).to_string();
             let secure_number = secure_numbers.chars().collect::<Vec<char>>()[*number].to_string();    
             params.push((input_name, secure_number));
         }
-        
+        params.push(("submit".to_string(), "Log in".to_string()));
         let path = format!("{}/my-accounts/login-step-two",self.base_url);
         let _ = &self.client
             .post(&path)
             .form(&params)
             .send()
-            .await
-            .unwrap();
+            .await;
         
     }
 
@@ -143,6 +142,7 @@ impl HL {
             .ok()?;
 
         Some(Html::parse_document(&html_text))
+
     }
 
 }
