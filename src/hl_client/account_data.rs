@@ -6,17 +6,17 @@ use scraper::Html;
 use scraper::Selector;
 
 pub struct Cash {
-    pub blocked: f32,
-    pub free: f32,
+    pub blocked: Option<f32>,
+    pub free: Option<f32>,
+    pub total_funds: f32,
     pub invested: f32,
     pub ppl: f32,
-    pub result: f32,
     pub total: f32,
 }
 
 impl HL {
 
-    pub async fn fetch_account_cash(&self)  {
+    pub async fn fetch_account_cash(&self) -> Option<Cash> {
         let overview_url = "https://online.hl.co.uk/my-accounts/portfolio_overview"; 
         let parsed_html = self.fetch_url(overview_url.to_string()).await.unwrap(); 
         
@@ -25,6 +25,19 @@ impl HL {
             .unwrap();
 
         let mut mapping:HashMap<String, f32> = HashMap::with_capacity(6);
+        
+        let available_cash_selector = Selector::parse(r#"td a[title="Available"]"#)
+            .unwrap();
+        let available_cash = parsed_html
+            .select(&available_cash_selector)
+            .next()
+            .unwrap()
+            .inner_html()
+            .trim()
+            .replace("£", "")
+            .replace(",","")
+            .parse::<f32>()
+            .ok();
 
         for row in parsed_html.select(&html_selector).into_iter() {
             let raw_page = self.parse_account_page(&row.to_owned()).await;
@@ -33,16 +46,34 @@ impl HL {
             } else {
                 continue
             };
-            let _  = parse_account_information(account_page)
-                .iter()
-                .map(|(key, value)| 
+            let key_value_list  = parse_account_information(account_page);
+            let _: Vec<_> = key_value_list
+                .into_iter()
+                .map(|key_value| 
                      {
+                         let key = &key_value.0;
+                         let value = key_value.1;
+
                          if let Some(new_value) = value {
-                             mapping.entry(key.to_string()).and_modify(|cur_value| *cur_value+= new_value).or_insert(*new_value);
+                             mapping.entry(key.to_string()).and_modify(|cur_value| *cur_value+= new_value).or_insert(new_value);
                          }            
                     }
-                );
+                )
+                .collect();
         }
+        
+        return Some(
+            Cash {
+                blocked: Some(
+                             *mapping.get("account_total")? - *mapping.get("total_stock_value")? - available_cash?
+                             ),
+                free: available_cash,
+                total_funds: *mapping.get("account_total")?,
+                invested: *mapping.get("total_invested")?,
+                ppl: *mapping.get("ppl")?,
+                total:* mapping.get("account_total")?
+            }
+        )
 
     }
 
@@ -73,7 +104,6 @@ fn parse_account_information(parsed_account_page: Html) -> Vec<(String,Option<f3
         .iter()
         .map(
             |(label, selector)| -> (String, Option<f32>) {
-                println!("Selector {:?}", &selector);
                 let html_selector = Selector::parse(&selector)
                     .expect("Selector is not parsable");
                 let inner_value =parsed_account_page 
@@ -88,7 +118,6 @@ fn parse_account_information(parsed_account_page: Html) -> Vec<(String,Option<f3
             }
         )
         .collect();
-    
     account_kpis
 
 }
