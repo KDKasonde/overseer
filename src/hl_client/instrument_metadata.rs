@@ -1,6 +1,7 @@
 use super::HL;
 
 use serde::{de::Error, Deserialize};
+use scraper::Selector;
 
 
 #[derive(Debug, Deserialize)]
@@ -28,6 +29,17 @@ pub struct AllOpenPositions {
 impl HL {
 
      
+    pub async fn fetch_portfolio_position(&self) {
+        let overview_url = "https://online.hl.co.uk/my-accounts/portfolio_overview"; 
+        let parsed_html = self.fetch_url(overview_url.to_string()).await.unwrap(); 
+        
+        let table_css_selector = r#"table[id="portfolio"] tbody tr"#;
+        let html_selector = Selector::parse(&table_css_selector)
+            .unwrap();
+
+        for row in parsed_html.select(&html_selector).into_iter() {
+        }
+    } 
 
 }
 

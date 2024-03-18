@@ -40,7 +40,7 @@ impl HL {
             .ok();
 
         for row in parsed_html.select(&html_selector).into_iter() {
-            let raw_page = self.parse_account_page(&row.to_owned()).await;
+            let raw_page = self.navigate_to_link_(r#"td a[title="Stock summary"]"# ,&row.to_owned()).await;
             let account_page = if let Some(page) = raw_page  {
                 page
             } else {
@@ -61,7 +61,7 @@ impl HL {
                 )
                 .collect();
         }
-        
+        println!("{:?}", &mapping);
         return Some(
             Cash {
                 blocked: Some(
@@ -74,18 +74,6 @@ impl HL {
                 total:* mapping.get("account_total")?
             }
         )
-
-    }
-
-    async fn parse_account_page<'a>(&self, raw_html: &scraper::ElementRef<'a>) -> Option<Html> {
-        let table_css_selector = r#"td a[title="Stock summary"]"#;
-        let html_selector = Selector::parse(&table_css_selector).ok()?;
-        let link = raw_html
-            .select(&html_selector)
-            .next()?;
-
-        let parsed_html = self.fetch_url(link.attr("href")?.to_string()).await.unwrap();
-        Some(parsed_html)
 
     }
 
