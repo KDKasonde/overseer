@@ -46,7 +46,7 @@ impl HL {
             } else {
                 continue
             };
-            let key_value_list  = parse_account_information(account_page);
+            let key_value_list  = parse_account_information(&account_page);
             let _: Vec<_> = key_value_list
                 .into_iter()
                 .map(|key_value| 
@@ -61,7 +61,7 @@ impl HL {
                 )
                 .collect();
         }
-        println!("{:?}", &mapping);
+
         return Some(
             Cash {
                 blocked: Some(
@@ -79,7 +79,7 @@ impl HL {
 
 }
 
-fn parse_account_information(parsed_account_page: Html) -> Vec<(String,Option<f32>)> {
+fn parse_account_information(parsed_account_page: &Html) -> Vec<(String,Option<f32>)> {
     let table_cell_selectors = [
         ("account_total", r#"td[id="account_total_header"]"#),
         ("total_stock_value", r#"td[id="stock_total"]"#),
