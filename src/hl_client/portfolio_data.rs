@@ -3,7 +3,7 @@ use std::str::FromStr;
 use super::HL;
 
 use serde::Deserialize;
-use scraper::{html::Select, ElementRef, Html, Selector};
+use scraper::{ElementRef, Selector};
 
 
 #[derive(Debug, Clone)]

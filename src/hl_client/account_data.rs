@@ -6,8 +6,8 @@ use scraper::Html;
 use scraper::Selector;
 
 pub struct Cash {
-    pub blocked: Option<f32>,
-    pub free: Option<f32>,
+    pub blocked: f32,
+    pub free: f32,
     pub total_funds: f32,
     pub invested: f32,
     pub ppl: f32,
@@ -16,7 +16,48 @@ pub struct Cash {
 
 impl HL {
 
-    pub async fn fetch_account_cash(&self) -> Option<Cash> {
+    pub async fn fetch_account_cash(&self, account_link: &String, free_funds: f32) -> Option<Cash> {
+
+        let raw_page = self.fetch_url(account_link.to_string()).await;
+        let account_page = if let Some(page) = raw_page  {
+            page
+        } else {
+            return None
+        };
+        
+        let key_value_list  = parse_account_information(&account_page);
+
+        let mut mapping:HashMap<String, f32> = HashMap::with_capacity(6);
+        
+        let _: Vec<_> = key_value_list
+            .into_iter()
+            .map(|key_value| 
+                 {
+                     let key = &key_value.0;
+                     let value = key_value.1;
+
+                     if let Some(new_value) = value {
+                         mapping.entry(key.to_string()).and_modify(|cur_value| *cur_value+= new_value).or_insert(new_value);
+                     }            
+                 }
+                )
+            .collect();
+
+        return Some(
+            Cash {
+                blocked: *mapping.get("account_total")? - *mapping.get("total_stock_value")? - free_funds,
+                free: free_funds,
+                total_funds: *mapping.get("account_total")?,
+                invested: *mapping.get("total_invested")?,
+                ppl: *mapping.get("ppl")?,
+                total:* mapping.get("account_total")?
+            }
+        )
+
+    }
+
+
+    pub async fn fetch_all_account_cash(&self) -> Option<Cash> {
         let overview_url = "https://online.hl.co.uk/my-accounts/portfolio_overview"; 
         let parsed_html = self.fetch_url(overview_url.to_string()).await.unwrap(); 
         
@@ -64,10 +105,8 @@ impl HL {
 
         return Some(
             Cash {
-                blocked: Some(
-                             *mapping.get("account_total")? - *mapping.get("total_stock_value")? - available_cash?
-                             ),
-                free: available_cash,
+                blocked: *mapping.get("account_total")? - *mapping.get("total_stock_value")? - available_cash?,
+                free: available_cash?,
                 total_funds: *mapping.get("account_total")?,
                 invested: *mapping.get("total_invested")?,
                 ppl: *mapping.get("ppl")?,
