@@ -1,75 +1,15 @@
-use std::str::FromStr;
-
 use super::HL;
+use crate::hl_client::utils::ScrapedValue;
 
 use serde::Deserialize;
 use scraper::{ElementRef, Selector};
 
 
-#[derive(Debug, Clone)]
-enum ScrapedValue {
-    Str(String),
-    Float(f32)
-}
 
-#[derive(Debug, PartialEq, Eq)]
-struct ParseScrapedValueError;
-
-impl TryInto<String> for ScrapedValue {
-    
-    type Error = ParseScrapedValueError;
-
-    fn try_into(self) -> Result<String, ParseScrapedValueError> {
-        match self {
-            ScrapedValue::Str(x) => {
-                Ok(x)
-            },
-            _ => {
-                println!("Failed to coerce {:?} to string", self);
-                Err(ParseScrapedValueError)
-            }
-        }
-    }
-}
-
-impl TryInto<f32> for ScrapedValue {
-    
-    type Error = ParseScrapedValueError;
-
-    fn try_into(self) -> Result<f32, ParseScrapedValueError> {
-        match self {
-            ScrapedValue::Float(x) => {
-                Ok(x)
-            },
-            _ => {
-                println!("Failed to coerce {:?} to float", self);
-                Err(ParseScrapedValueError)
-            }
-        }
-    }
-}
-
-impl FromStr for ScrapedValue {
-
-    type Err = ParseScrapedValueError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let trimmed_string = s
-            .trim()
-            .replace("£", "")
-            .replace(",","");
-        if let Ok(float) = trimmed_string.parse::<f32>() {
-            Ok(ScrapedValue::Float(float))
-        } else {
-            Ok(ScrapedValue::Str(trimmed_string.to_string()))
-        }
-    }
-
-}
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct OpenPosition {
+    pub security_id: String,
     pub security_name: String,
     pub security_name_subtext: String,
     pub total_value: f32,
@@ -81,7 +21,6 @@ pub struct OpenPosition {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct AllOpenPositions {
     pub positions: Option<Vec<Option<OpenPosition>>>,
 }
@@ -113,6 +52,7 @@ impl HL {
 
                 all_open_positions.push(
                     OpenPosition{
+                        security_id: <Option<ScrapedValue> as Clone>::clone(&instrument_data[0].1).unwrap().try_into().unwrap(),
                         security_name: <Option<ScrapedValue> as Clone>::clone(&instrument_data[1].1).unwrap().try_into().unwrap(),
                         security_name_subtext: <Option<ScrapedValue> as Clone>::clone(&instrument_data[2].1).unwrap().try_into().unwrap(),
                         quantity: <Option<ScrapedValue> as Clone>::clone(&instrument_data[3].1).unwrap().try_into().unwrap(),
@@ -135,7 +75,7 @@ impl HL {
 
 fn parse_account_information(parsed_account_page: &ElementRef) -> Vec<(String,Option<ScrapedValue>)> {
     let table_cell_selectors = [
-        ("security_name_id", r#"td:nth-child(1) a[title="View trading history"]"#),
+        ("security_id", r#"td:nth-child(1) a[title="View trading history"]"#),
         ("security_name", r#"td:nth-child(2) a[title="View trading history"] span"#),
         ("security_name_subtext", r#"td:nth-child(2) span.text-mini"#),
         ("units_held", r#"td:nth-child(3) span"#),

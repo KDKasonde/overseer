@@ -2,6 +2,7 @@ mod portfolio_data;
 mod historical_data;
 mod account_data;
 mod login;
+mod utils;
 
 use std::sync::Arc;
 use reqwest::{
@@ -24,8 +25,10 @@ pub struct HL {
 }
 
 impl HL {
-    pub fn new(base_url: &str) -> HL {
+    pub fn new() -> HL {
+
         let mut headers = header::HeaderMap::new();
+        let base_url = "https://online.hl.co.uk";
 
         headers.insert(header::USER_AGENT, header::HeaderValue::from_static("overseer"));
         headers.insert(header::CONTENT_TYPE, header::HeaderValue::from_static("application/json"));
