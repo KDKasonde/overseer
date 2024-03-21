@@ -1,14 +1,8 @@
 use super::{portfolio_data::OpenPosition, HL};
+use super::utils::ScrapedValue;
 
 use serde::Deserialize;
 use scraper::{ElementRef, Selector};
-
-
-#[derive(Debug, Clone)]
-enum ScrapedValue {
-    Str(String),
-    Float(f32)
-}
 
 
 #[derive(Debug, Deserialize)]
@@ -19,7 +13,7 @@ pub struct HistoricalTransaction {
     pub unit_cost: f32,
     pub quantity: f32,
     pub cost: f32,
-    pub transaction_type: f32,
+    pub transaction_type: String,
 }
 
 impl HL {
@@ -32,23 +26,20 @@ impl HL {
         let transactions_selector = Selector::parse(r#"div[id="movements-table-container"] table tbody tr"#)
             .unwrap();
 
-        let transactions_table = parsed_html
-            .select(&transactions_selector);
-
         let mut historical_transactions = Vec::new();
 
-        for row in transactions_table.into_iter() {
+        for row in parsed_html.select(&transactions_selector).into_iter() {
             
-            let historical_transaction = parse_transaction_information(&transactions_table);
+            let historical_transaction = parse_transaction_information(&row);
 
             let transaction = HistoricalTransaction {
-                security_name: security.security_name,
-                security_name_subtext: security.security_name_subtext,
-                date: <Option<ScrapedValue> as Clone>::clone(historical_transaction[0].1).unwrap().try_into().unwrap(),
-                unit_cost: <Option<ScrapedValue> as Clone>::clone(historical_transaction[1].1).unwrap().try_into().unwrap(),
-                quantity: <Option<ScrapedValue> as Clone>::clone(historical_transaction[2].1).unwrap().try_into().unwrap(),
-                cost: <Option<ScrapedValue> as Clone>::clone(historical_transaction[3].1).unwrap().try_into().unwrap(),  
-                transaction_type: <Option<ScrapedValue> as Clone>::clone(historical_transaction[4].1).unwrap().try_into().unwrap(),
+                security_name: security.security_name.clone(),
+                security_name_subtext: security.security_name_subtext.clone(),
+                date: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[0].1).unwrap().try_into().unwrap(),
+                unit_cost: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[1].1).unwrap().try_into().unwrap(),
+                quantity: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[2].1).unwrap().try_into().unwrap(),
+                cost: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[3].1).unwrap().try_into().unwrap(),  
+                transaction_type: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[4].1).unwrap().try_into().unwrap(),
             };
             historical_transactions.push(transaction);
         }
@@ -56,23 +47,22 @@ impl HL {
     } 
 
     pub async fn fetch_all_transactions(&self, securities: Vec<OpenPosition>) -> Vec<HistoricalTransaction> {
-        let historical_transactions = Vec::new();
+        let mut historical_transactions: Vec<HistoricalTransaction> = Vec::new();
 
-        securities
-            .iter()
-            .map(
-                |security| {
-                    let transactions = self.fetch_historical_transaction(&security);
-                    historical_transactions.extend(transactions.iter());
-                }
-             )
-            .collect();
+        for position in securities { 
+            let mut transactions: Vec<HistoricalTransaction> = self.fetch_historical_transaction(&position).await;
+            historical_transactions.append(&mut transactions);
+        }
         historical_transactions
+
+
+
     }
+
 }
 
 
-fn parse_transaction_information(parsed_account_page: &ElementRef) -> Vec<ScrapedValue> {
+fn parse_transaction_information(parsed_account_page: &ElementRef) -> Vec<(String, Option<ScrapedValue>)> {
     let table_cell_selectors = [
         ("date", r#"td:nth-child(1)"#),
         ("unit_cost", r#"td:nth-child(4)"#),

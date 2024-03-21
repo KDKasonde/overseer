@@ -30,9 +30,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let secure_number = env::var("HL_SECURE_NUMBER").unwrap();
 
     let base_url = "https://online.hl.co.uk";
-    let hl = HL::new(base_url);
+    let hl = HL::new();
     hl.login(username, date_of_birth, password, secure_number).await;
-    hl.fetch_account_cash().await;
+    let accounts = hl.fetch_accounts().await;
+    let portfolio_positions = hl.fetch_portfolio_position().await;
+    let historical_transactions = hl.fetch_all_transactions(portfolio_positions).await;
+
     let vector = hl.fetch_portfolio_position().await;
     if let Some(api_key) = &args.api_key{
         let trading_212_base_api = "https://live.trading212.com/api/v0/".to_string();

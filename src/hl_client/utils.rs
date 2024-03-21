@@ -1,26 +1,20 @@
+use std::str::FromStr;
+
 #[derive(Debug, Clone)]
 pub enum ScrapedValue {
-    Str(String),
-    Float(f32)
+    Value(String)
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct ParseScrapedValueError;
+pub struct ParseScrapedValueError;
 
 impl TryInto<String> for ScrapedValue {
     
     type Error = ParseScrapedValueError;
 
     fn try_into(self) -> Result<String, ParseScrapedValueError> {
-        match self {
-            ScrapedValue::Str(x) => {
-                Ok(x)
-            },
-            _ => {
-                println!("Failed to coerce {:?} to string", self);
-                Err(ParseScrapedValueError)
-            }
-        }
+        let ScrapedValue::Value(value) = self;
+        Ok(value)
     }
 }
 
@@ -29,12 +23,14 @@ impl TryInto<f32> for ScrapedValue {
     type Error = ParseScrapedValueError;
 
     fn try_into(self) -> Result<f32, ParseScrapedValueError> {
-        match self {
-            ScrapedValue::Float(x) => {
+        let ScrapedValue::Value(value) = self;
+        let parsed_value = value.parse::<f32>();
+        match parsed_value {
+            Ok(x) => {
                 Ok(x)
             },
             _ => {
-                println!("Failed to coerce {:?} to float", self);
+                println!("Failed to coerce {:?} to float", value);
                 Err(ParseScrapedValueError)
             }
         }
@@ -50,11 +46,7 @@ impl FromStr for ScrapedValue {
             .trim()
             .replace("£", "")
             .replace(",","");
-        if let Ok(float) = trimmed_string.parse::<f32>() {
-            Ok(ScrapedValue::Float(float))
-        } else {
-            Ok(ScrapedValue::Str(trimmed_string.to_string()))
-        }
+        Ok(ScrapedValue::Value(trimmed_string.to_string()))
     }
 
 }

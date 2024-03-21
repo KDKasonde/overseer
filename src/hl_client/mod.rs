@@ -4,6 +4,7 @@ mod account_data;
 mod login;
 mod utils;
 
+use std::str::FromStr;
 use std::sync::Arc;
 use reqwest::{
     cookie::Jar, header, Client, Url
@@ -82,7 +83,7 @@ impl HL {
 
     }
 
-    async fn fetch_accounts(&self) -> Vec<Account> {
+    pub async fn fetch_accounts(&self) -> Vec<Account> {
         let overview_url = "https://online.hl.co.uk/my-accounts/portfolio_overview"; 
         let parsed_html = self.fetch_url(overview_url.to_string()).await.unwrap(); 
         

@@ -66,7 +66,6 @@ impl HL {
 
             }
         }
-        println!("{:?}", &all_open_positions);
         all_open_positions
     } 
 
