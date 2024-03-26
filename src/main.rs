@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     hl.login(username, date_of_birth, password, secure_number).await;
     let accounts = hl.fetch_accounts().await;
     let portfolio_positions = hl.fetch_portfolio_position().await;
-    let historical_transactions = hl.fetch_all_transactions(portfolio_positions).await;
+    let historical_transactions = hl.fetch_all_historical_transactions(portfolio_positions).await;
 
     let vector = hl.fetch_portfolio_position().await;
     if let Some(api_key) = &args.api_key{

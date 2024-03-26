@@ -3,8 +3,8 @@ mod historical_data;
 mod account_data;
 mod login;
 mod utils;
+mod overseer;
 
-use std::str::FromStr;
 use std::sync::Arc;
 use reqwest::{
     cookie::Jar, header, Client, Url

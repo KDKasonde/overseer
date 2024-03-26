@@ -1,3 +1,5 @@
+use crate::overseer::traits::ReadableSecurity;
+
 use super::{portfolio_data::OpenPosition, HL};
 use super::utils::ScrapedValue;
 
@@ -6,7 +8,7 @@ use scraper::{ElementRef, Selector};
 
 
 #[derive(Debug, Deserialize)]
-pub struct HistoricalTransaction {
+pub struct HistoricalOrder {
     pub security_name: String,
     pub security_name_subtext: String,
     pub date: String,
@@ -18,8 +20,8 @@ pub struct HistoricalTransaction {
 
 impl HL {
 
-    pub async fn fetch_historical_transaction(&self, security: &OpenPosition) -> Vec<HistoricalTransaction> {
-        let security_url = format!("{}/my-accounts/security_movements/sedol/{}", self.base_url, security.security_id); 
+    pub async fn fetch_historical_transaction(&self, security: &impl ReadableSecurity) -> Vec<HistoricalOrder> {
+        let security_url = format!("{}/my-accounts/security_movements/sedol/{}", self.base_url, security.get_security_id()); 
         
         let parsed_html = self.fetch_url(security_url).await.unwrap();
 
@@ -32,9 +34,9 @@ impl HL {
             
             let historical_transaction = parse_transaction_information(&row);
 
-            let transaction = HistoricalTransaction {
-                security_name: security.security_name.clone(),
-                security_name_subtext: security.security_name_subtext.clone(),
+            let transaction = HistoricalOrder {
+                security_name: security.get_security_name(),
+                security_name_subtext: security.get_security_name_subtext().unwrap(),
                 date: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[0].1).unwrap().try_into().unwrap(),
                 unit_cost: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[1].1).unwrap().try_into().unwrap(),
                 quantity: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[2].1).unwrap().try_into().unwrap(),
@@ -46,11 +48,11 @@ impl HL {
         historical_transactions 
     } 
 
-    pub async fn fetch_all_transactions(&self, securities: Vec<OpenPosition>) -> Vec<HistoricalTransaction> {
-        let mut historical_transactions: Vec<HistoricalTransaction> = Vec::new();
+    pub async fn fetch_all_historical_transactions(&self, securities: Vec<impl ReadableSecurity>) -> Vec<HistoricalOrder> {
+        let mut historical_transactions: Vec<HistoricalOrder> = Vec::new();
 
         for position in securities { 
-            let mut transactions: Vec<HistoricalTransaction> = self.fetch_historical_transaction(&position).await;
+            let mut transactions: Vec<HistoricalOrder> = self.fetch_historical_transaction(&position).await;
             historical_transactions.append(&mut transactions);
         }
         historical_transactions
