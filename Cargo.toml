@@ -7,11 +7,20 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
+async-trait = "0.1.79"
 clap = { version = "4.4.18", features = ["derive"] }
 dotenv = "0.15.0"
 regex = "1.10.3"
 reqwest = { version = "0.11", features = ["json", "cookies"] }
 scraper = "0.19.0"
 serde = { version = "1.0.196", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
 serde_json = "1.0.113"
 tokio = { version = "1", features = ["full"] }
+wasm-bindgen = "0.2.92"
+wasm-bindgen-futures = "0.4.42"
+
+
+[feature]
+default = ["wasm"]
+wasm = []

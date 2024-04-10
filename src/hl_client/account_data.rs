@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::overseer::traits::OverseerError;
+
 use super::HL;
 use scraper::Html;
  
@@ -16,13 +18,13 @@ pub struct Cash {
 
 impl HL {
 
-    pub async fn fetch_account_cash(&self, account_link: &String, free_funds: f32) -> Option<Cash> {
+    pub async fn fetch_account_cash(&self, account_link: &String, free_funds: f32) -> Result<Cash, OverseerError> {
 
         let raw_page = self.fetch_url(account_link.to_string()).await;
         let account_page = if let Some(page) = raw_page  {
             page
         } else {
-            return None
+            return Err(OverseerError::FailedFetch { url: account_link.to_owned() })
         };
         
         let key_value_list  = parse_account_information(&account_page);
@@ -43,14 +45,38 @@ impl HL {
                 )
             .collect();
 
-        return Some(
+        let account_total = if let Some(data) = mapping.get("account_total") {
+            data
+        } else {
+            return Err(OverseerError::MissingData { dataField: "account_total".to_string()})
+        };
+
+        let total_stock_value = if let Some(data) = mapping.get("total_stock_value") {
+            data
+        } else {
+            return Err(OverseerError::MissingData { dataField: "total_stock_value".to_string()})
+        };
+
+        let total_invested = if let Some(data) = mapping.get("total_invested") {
+            data
+        } else {
+            return Err(OverseerError::MissingData { dataField: "total_invested".to_string()})
+        };
+
+        let ppl = if let Some(data) = mapping.get("ppl") {
+            data
+        } else {
+            return Err(OverseerError::MissingData { dataField: "ppl".to_string()})
+        };
+
+        return Ok(
             Cash {
-                blocked: *mapping.get("account_total")? - *mapping.get("total_stock_value")? - free_funds,
+                blocked: account_total - total_stock_value - free_funds,
                 free: free_funds,
-                total_funds: *mapping.get("account_total")?,
-                invested: *mapping.get("total_invested")?,
-                ppl: *mapping.get("ppl")?,
-                total:* mapping.get("account_total")?
+                total_funds: account_total - total_stock_value,
+                invested: *total_invested,
+                ppl: *ppl,
+                total: *account_total
             }
         )
 
@@ -80,38 +106,34 @@ impl HL {
             .parse::<f32>()
             .ok();
 
+        let mut total_cash = Cash { blocked: 0., free: 0., total_funds: 0., invested: 0., ppl: 0., total: 0. };
         for row in parsed_html.select(&html_selector).into_iter() {
-            let raw_page = self.navigate_to_link_(r#"td a[title="Stock summary"]"# ,&row.to_owned()).await;
-            let account_page = if let Some(page) = raw_page  {
-                page
+            let account = if let Some(link) = get_link(r#"td a[title="Stock summary"]"# ,&row.to_owned()) {
+                link 
             } else {
-                continue
-            };
-            let key_value_list  = parse_account_information(&account_page);
-            let _: Vec<_> = key_value_list
-                .into_iter()
-                .map(|key_value| 
-                     {
-                         let key = &key_value.0;
-                         let value = key_value.1;
+                continue 
+            }; 
 
-                         if let Some(new_value) = value {
-                             mapping.entry(key.to_string()).and_modify(|cur_value| *cur_value+= new_value).or_insert(new_value);
-                         }            
-                    }
-                )
-                .collect();
+            let account = match self.fetch_account_cash(account_url, available_cash).await  {
+                Ok(account) => {
+                    account
+                },
+                Err(e) => {
+                    print!("Error occurred retreive account error {} ", e);
+                    continue
+                }
+            };
+        
+            total_cash.blocked += account.blocked; 
+            total_cash.total_funds += account.total_funds; 
+            total_cash.invested += account.invested; 
+            total_cash.ppl += account.ppl; 
+            total_cash.total += account.total; 
+                
         }
 
         return Some(
-            Cash {
-                blocked: *mapping.get("account_total")? - *mapping.get("total_stock_value")? - available_cash?,
-                free: available_cash?,
-                total_funds: *mapping.get("account_total")?,
-                invested: *mapping.get("total_invested")?,
-                ppl: *mapping.get("ppl")?,
-                total:* mapping.get("account_total")?
-            }
+            total_cash
         )
 
     }
@@ -148,4 +170,13 @@ fn parse_account_information(parsed_account_page: &Html) -> Vec<(String,Option<f
     account_kpis
 
 }
+
+fn get_link<'a>(css_selector: &str, raw_html: &scraper::ElementRef<'a>) -> Option<String> {
+    let html_selector = Selector::parse(css_selector).ok()?;
+    let link = raw_html
+        .select(&html_selector)
+        .next()?;
+    Some(link.attr("href")?.to_string())
+}
+
 

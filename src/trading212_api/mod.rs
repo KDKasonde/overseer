@@ -3,6 +3,7 @@ mod historical_data;
 mod pie_data;
 mod instrument_metadata;
 mod account_data;
+mod overseer;
 
 use reqwest::{
     Client,

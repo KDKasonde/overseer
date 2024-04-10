@@ -48,7 +48,7 @@ pub struct ExportItem {
 #[serde(rename_all = "camelCase")]
 pub struct HistoricalOrder {
     date_created: String,
-    date_executed: String,
+    pub date_executed: String,
     date_modified: String,
     executor: String,
     fill_cost: f32,
@@ -56,19 +56,19 @@ pub struct HistoricalOrder {
     fill_price: f32,
     fill_result: f32,
     fill_item_type: String,
-    filled_quantity: f32,
-    filled_value: f32,
+    pub filled_quantity: f32,
+    pub filled_value: f32,
     id: i64,
-    limit_price: f32,
+    pub limit_price: f32,
     ordered_quantity: f32,
     ordered_value: f32,
     parent_order: i64,
     status: String,
     stop_price: f32,
     taxes: Vec<InstrumentTax>,
-    ticker: String,
+    pub ticker: String,
     time_validity: String,
-    item_type: String,
+    pub item_type: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -83,14 +83,14 @@ pub struct Transaction {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoricalOrderList {
-    orders: Vec<HistoricalOrder>,
+    pub orders: Vec<HistoricalOrder>,
     next_page_path: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoricalDividendItemList {
-    orders: Vec<HistoricalDividendItem>,
+    pub orders: Vec<HistoricalDividendItem>,
     next_page_path: String,
 }
 

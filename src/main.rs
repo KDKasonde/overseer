@@ -1,3 +1,4 @@
+use overseer::overseer::traits::OverseenAccount;
 use overseer::trading212_api::Trading212;
 use overseer::hl_client::{self, HL};
 use clap::Parser;
@@ -37,6 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let historical_transactions = hl.fetch_all_historical_transactions(portfolio_positions).await;
 
     let vector = hl.fetch_portfolio_position().await;
+    let overseer_account = hl.get_cash().await;
     if let Some(api_key) = &args.api_key{
         let trading_212_base_api = "https://live.trading212.com/api/v0/".to_string();
 
