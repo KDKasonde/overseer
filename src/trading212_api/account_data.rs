@@ -1,3 +1,5 @@
+use crate::overseer::traits::OverseerError;
+
 use super::Trading212;
 
 use serde::Deserialize;
@@ -23,13 +25,13 @@ pub struct Metadata {
 
 impl Trading212 {
     
-    pub async fn fetch_account_cash(&self) -> Cash {
+    pub async fn fetch_account_cash(&self) -> Result<Cash, OverseerError> {
         
         let client = &self.client;
         let target_url = format!("{}equity/account/cash", self.base_url );
 
         let res = client
-            .get(target_url)
+            .get(&target_url)
             .send()
             .await;
         
@@ -39,10 +41,10 @@ impl Trading212 {
                     .json::<Cash>()
                     .await
             },
-            Err(error)  => {
+            Err(..)  => {
                 // This should not panic unless there is something wrong with auth, the url or the
                 // headers.
-                panic!("Response was not okay! Received the following error: \n\t{}", error);
+                return Err(OverseerError::FailedFetch { url: target_url })    
             }
         }; 
         
@@ -55,7 +57,7 @@ impl Trading212 {
             }
         }; 
         
-        return output
+        Ok(output)
         
     }
 

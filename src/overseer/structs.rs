@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 use super::traits::ReadableSecurity;
 use super::enums::Vendor;
 
+#[wasm_bindgen]
 pub struct OverseerVendor {
     pub vendor: Vendor,
 }

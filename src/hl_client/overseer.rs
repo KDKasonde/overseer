@@ -27,27 +27,43 @@ impl ReadableSecurity for OpenPosition {
 #[async_trait(?Send)]
 impl OverseenAccount for HL {
 
-    async fn get_cash(&self) -> Result<Account, OverseerError> {
-        let native_account = match self.fetch_all_account_cash().await {
+    async fn get_cash(&self) -> Result<Vec<Result<Account,OverseerError>>,OverseerError> {
+        let native_accounts = match self.fetch_all_account_cash().await {
             Ok(account) => {
                 account
             }, 
             Err(e) => {
-                return e
+                return Err(e)
             }
         };
+        let overseer_accounts = native_accounts 
+            .iter()
+            .map(
+                |&account| {
+                    match account {
+                        Ok(native_account) => {
+                            Ok(
+                                Account{
+                                    vendor: "Hargeaves Lansdown".to_string(),
+                                    blocked: native_account.blocked,
+                                    free: native_account.blocked,
+                                    total_funds: native_account.total_funds,
+                                    invested: native_account.invested,
+                                    ppl: native_account.ppl,
+                                    total: native_account.total
+                                }
+                              )
+                        },
+                        Err(e) => {
+                            Err(e)
+                        }
+                    }
+                }
+            )
+            .collect::<Vec<Result<Account,OverseerError>>>();
 
-        Ok(
-            Account{
-                vendor: "Hargeaves Lansdown".to_string(),
-                blocked: native_account.blocked,
-                free: native_account.blocked,
-                total_funds: native_account.total_funds,
-                invested: native_account.invested,
-                ppl: native_account.ppl,
-                total: native_account.total
-            }
-        )
+        Ok(overseer_accounts)
+
     }
 
     async fn get_asset_summary(&self) -> Vec<Position> {
@@ -75,8 +91,11 @@ impl OverseenAccount for HL {
     }
     
     async fn get_historical_transactions(&self, position: Box<dyn ReadableSecurity>) -> Vec<HistoricalTransaction> {
-        
-        let native_historical_transactions = self.fetch_historical_transaction(position).await;
+        let security_id = position.get_security_id();
+        let security_name = position.get_security_name().unwrap_or_else(|| String::new());
+        let security_name_subtext = position.get_security_name_subtext().unwrap_or_else(|| String::new());
+
+        let native_historical_transactions = self.fetch_historical_transaction(security_id, security_name, security_name_subtext).await;
         native_historical_transactions                 
             .iter()
             .map({
@@ -95,5 +114,34 @@ impl OverseenAccount for HL {
             })
         .collect::<Vec<HistoricalTransaction>>()
 
+    }
+     
+    async fn login(&self, username: Option<String>, date_of_birth: Option<String>, password: Option<String>, secure_number: Option<String>) {
+        let username = if let Some(user) = username {
+            user 
+        } else {
+            panic!("Missing username")
+        };
+        let password = if let Some(pass) = password {
+            pass
+        } else {
+            panic!("Missing password")
+        };
+        let secure_number = if let Some(number) = secure_number {
+            number
+        } else {
+            panic!("Missing secure number")
+        };
+        let date_of_birth = if let Some(date) = date_of_birth {
+            date
+        } else {
+            panic!("Missing secure number")
+        };
+
+        self.login(username, date_of_birth, password, secure_number);
+    }
+
+    async fn logout(&self) {
+        self.logout()
     }
 }

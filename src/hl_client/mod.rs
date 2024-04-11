@@ -10,7 +10,6 @@ use reqwest::{
     cookie::Jar, header, Client, Url
 };
 use scraper::{selectable::Selectable, ElementRef, Html, Selector};
-use wasm_bindgen::prelude::*;
 
 use self::account_data::Cash;
 
@@ -21,7 +20,6 @@ pub struct Account {
     account_details: Cash
 }
 
-#[wasm_bindgen]
 pub struct HL {
     base_url: String,
     client: Client,

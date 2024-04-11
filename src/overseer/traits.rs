@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 
+
 use super::structs::{Account, HistoricalTransaction, Position};
 use core::fmt;
 use std::future::Future;
@@ -29,7 +30,7 @@ impl fmt::Display for OverseerError {
 
 #[async_trait(?Send)]
 pub trait OverseenAccount {
-    async fn get_cash(&self) -> Result<Account,OverseerError>;
+    async fn get_cash(&self) -> Result<Vec<Result<Account,OverseerError>>,OverseerError>;
     async fn get_asset_summary (&self) -> Vec<Position>;
     async fn get_historical_transactions (&self, position: Box<dyn ReadableSecurity>) -> Vec<HistoricalTransaction>;    
     async fn get_all_historical_transactions(&self) -> Vec<HistoricalTransaction> {
@@ -41,6 +42,12 @@ pub trait OverseenAccount {
             history.append(&mut transactions);
         }
         history
+    }
+    async fn login(&self, username: Option<String>, date_of_birth: Option<String>, password: Option<String>, secure_number: Option<String>) {
+        panic!("login is not required for this account!")
+    }
+    async fn logout(&self) {
+        panic!("logout is not required for this account!")
     }
 }
 

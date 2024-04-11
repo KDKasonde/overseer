@@ -54,7 +54,11 @@ impl HL {
         let mut historical_transactions: Vec<HistoricalOrder> = Vec::new();
 
         for position in securities { 
-            let mut transactions: Vec<HistoricalOrder> = self.fetch_historical_transaction(position).await;
+            let security_id = position.get_security_id();
+            let security_name = position.get_security_name().unwrap_or_else(|| String::new());
+            let security_name_subtext = position.get_security_name_subtext().unwrap_or_else(|| String::new());
+
+            let mut transactions: Vec<HistoricalOrder> = self.fetch_historical_transaction(security_id, security_name, security_name_subtext).await;
             historical_transactions.append(&mut transactions);
         }
         historical_transactions

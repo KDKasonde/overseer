@@ -82,8 +82,7 @@ impl HL {
 
     }
 
-
-    pub async fn fetch_all_account_cash(&self) -> Option<Cash> {
+    pub async fn fetch_all_account_cash(&self) -> Result<Vec<Result<Cash, OverseerError>>, OverseerError> {
         let overview_url = "https://online.hl.co.uk/my-accounts/portfolio_overview"; 
         let parsed_html = self.fetch_url(overview_url.to_string()).await.unwrap(); 
         
@@ -91,8 +90,6 @@ impl HL {
         let html_selector = Selector::parse(&table_css_selector)
             .unwrap();
 
-        let mut mapping:HashMap<String, f32> = HashMap::with_capacity(6);
-        
         let available_cash_selector = Selector::parse(r#"td a[title="Available"]"#)
             .unwrap();
         let available_cash = parsed_html
@@ -106,7 +103,15 @@ impl HL {
             .parse::<f32>()
             .ok();
 
-        let mut total_cash = Cash { blocked: 0., free: 0., total_funds: 0., invested: 0., ppl: 0., total: 0. };
+        let available_cash = match available_cash {
+            Some(cash) => { cash },
+            _ =>  {
+                return Err(OverseerError::MissingData { dataField: "available_cash".to_string()})
+            }
+        };
+
+
+        let mut all_accounts = Vec::new();
         for row in parsed_html.select(&html_selector).into_iter() {
             let account = if let Some(link) = get_link(r#"td a[title="Stock summary"]"# ,&row.to_owned()) {
                 link 
@@ -114,26 +119,13 @@ impl HL {
                 continue 
             }; 
 
-            let account = match self.fetch_account_cash(account_url, available_cash).await  {
-                Ok(account) => {
-                    account
-                },
-                Err(e) => {
-                    print!("Error occurred retreive account error {} ", e);
-                    continue
-                }
-            };
+            let account = self.fetch_account_cash(&account, available_cash).await;
         
-            total_cash.blocked += account.blocked; 
-            total_cash.total_funds += account.total_funds; 
-            total_cash.invested += account.invested; 
-            total_cash.ppl += account.ppl; 
-            total_cash.total += account.total; 
-                
+            all_accounts.push(account);    
         }
 
-        return Some(
-            total_cash
+        return Ok(
+            all_accounts
         )
 
     }

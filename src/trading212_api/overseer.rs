@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use super::Trading212;
 use super::portfolio_data::OpenPosition;
 
-use crate::overseer::traits::{OverseenAccount, ReadableSecurity};
+use crate::overseer::traits::{OverseenAccount, ReadableSecurity, OverseerError};
 use crate::overseer::structs::{Account, HistoricalTransaction, Position}; 
 
 impl ReadableSecurity for OpenPosition {
@@ -18,17 +18,31 @@ impl ReadableSecurity for OpenPosition {
 #[async_trait(?Send)]
 impl OverseenAccount for Trading212 {
 
-    async fn get_cash(&self) -> Account {
-        let native_account = self.fetch_account_cash().await;
-        Account{
-            vendor: "Trading 212".to_string(),
-            blocked: native_account.blocked.unwrap(),
-            free: native_account.free,
-            total_funds: native_account.free + native_account.blocked.unwrap_or(0.),
-            invested: native_account.invested,
-            ppl: native_account.ppl,
-            total: native_account.total
-        }
+    async fn get_cash(&self) -> Result<Vec<Result<Account,OverseerError>>,OverseerError> {
+        let native_account = match self.fetch_account_cash().await {
+            Ok(account) => {
+                account
+            }, 
+            Err(e) => {
+                return Err(e)
+            }
+        };
+        
+        Ok(
+            vec![
+                Ok(
+                    Account{
+                        vendor: "Trading 212".to_string(),
+                        blocked: native_account.blocked.unwrap(),
+                        free: native_account.free,
+                        total_funds: native_account.free + native_account.blocked.unwrap_or(0.),
+                        invested: native_account.invested,
+                        ppl: native_account.ppl,
+                        total: native_account.total
+                    }
+                )
+            ]
+        )
 
     }
 
@@ -58,7 +72,7 @@ impl OverseenAccount for Trading212 {
         .collect::<Vec<Position>>()
     }
     
-    async fn get_historical_transactions(&self, position: Box<dyn ReadableSecurity>) -> Vec<HistoricalTransaction> {
+    async fn get_historical_transactions(&self, position: Box<dyn  ReadableSecurity>) -> Vec<HistoricalTransaction> {
         let native_historical_transactions = self.fetch_historical_orders(None, &position.get_security_id(), None)
             .await;
         native_historical_transactions
