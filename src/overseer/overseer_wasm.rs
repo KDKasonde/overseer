@@ -35,50 +35,44 @@ impl OverSeen {
                 };
 
                 OverSeen {
-                    overseen_account: Trading212::new(base_url.into(), api_key.into(),),
+                    overseen_account: Box::new(Trading212::new(base_url.as_str(), api_key.as_str())),
                     vendor: "trading212".to_string()
                 }
             },
             "hl"=> {
                 OverSeen {
-                    overseen_account: HL::new(),
+                    overseen_account: Box::new(HL::new()),
                     vendor: "hl".to_string()
                 }
+            }, 
+            _ => {
+                panic!("The input vendor {} is not supported.", vendor)
             }
         }
     }
 
-    pub fn authenticate(self, username: String, date_of_birth: String, password: String, secure_number: String) {
+    pub async fn authenticate(self, username: String, date_of_birth: String, password: String, secure_number: String) {
         match self.vendor.as_ref() {
             "hl" => {
                 self.overseen_account.login(
-                    username= Some(username), 
-                    password= Some(password), 
-                    date_of_birth= Some(date_of_birth), 
-                    secure_number= Some(secure_number)
+                    Some(username), 
+                    Some(password), 
+                    Some(date_of_birth), 
+                    Some(secure_number)
                 )
+                .await;
             },
             _ => {
                 panic!("login not required")
             }
         }
     }
-
-    pub fn get_accounts(&self) -> Result<Vec<Result<Account,OverseerError>>,OverseerError> {
-        self.overseen_account.get_cash()
-    }
      
-    pub async fn get_vendor_summary(&self) -> Result<Account, OverseerError> {
-        let all_accounts = match self.overseen_account.get_cash().await {
-            Ok(accounts) => {
-                accounts
-            },
-            Err(OverseerError) => {
-                return OverseerError
-            }
-        };
+    pub async fn get_vendor_summary(&self) -> Result<JsValue, JsValue> {
+        let all_accounts = self.overseen_account.get_cash().await;
+
         let mut overview = Account {
-           vendor : self.vendor,
+           vendor : self.vendor.clone(),
            blocked : 0., 
            free : 0.,
            total_funds : 0.,
@@ -87,24 +81,16 @@ impl OverSeen {
            total : 0. 
         };
 
-        let account = all_accounts
-            .iter()
+        let _: Vec<_> = all_accounts
+            .into_iter()
             .map(
                 |account| {
-                    let account = match account {
-                        Ok(account_data) => {
-                            overview += account_data;
-
-                        },
-                        Err(e) => {
-                            return e
-                        }
-                    };
+                    overview += &account.unwrap();
                 }
-                )
+            )
             .collect();
 
-        Ok(overview)
+        serde_wasm_bindgen::to_value(&overview).map_err(|err| err.into())
     }
 }
 

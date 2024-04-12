@@ -28,19 +28,19 @@ impl ReadableSecurity for OpenPosition {
 #[async_trait(?Send)]
 impl OverseenAccount for HL {
 
-    async fn get_cash(&self) -> Result<Vec<Result<Account,OverseerError>>,OverseerError> {
+    async fn get_cash(&self) -> Vec<Result<Account,OverseerError>> {
         let native_accounts = match self.fetch_all_account_cash().await {
             Ok(account) => {
                 account
             }, 
             Err(e) => {
-                return Err(e)
+                panic!("No accounts could be retrieved")
             }
         };
         let overseer_accounts = native_accounts 
-            .iter()
+            .into_iter()
             .map(
-                |&account| {
+                |account| {
                     match account {
                         Ok(native_account) => {
                             Ok(
@@ -63,7 +63,7 @@ impl OverseenAccount for HL {
             )
             .collect::<Vec<Result<Account,OverseerError>>>();
 
-        Ok(overseer_accounts)
+        overseer_accounts
 
     }
 
@@ -139,10 +139,10 @@ impl OverseenAccount for HL {
             panic!("Missing secure number")
         };
 
-        self.login(username, date_of_birth, password, secure_number);
+        self.login(username, date_of_birth, password, secure_number).await;
     }
 
     async fn logout(&self) {
-        self.logout()
+        self.logout().await
     }
 }

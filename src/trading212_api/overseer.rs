@@ -19,31 +19,30 @@ impl ReadableSecurity for OpenPosition {
 #[async_trait(?Send)]
 impl OverseenAccount for Trading212 {
 
-    async fn get_cash(&self) -> Result<Vec<Result<Account,OverseerError>>,OverseerError> {
-        let native_account = match self.fetch_account_cash().await {
-            Ok(account) => {
-                account
-            }, 
-            Err(e) => {
-                return Err(e)
-            }
-        };
-        
-        Ok(
-            vec![
-                Ok(
-                    Account{
-                        vendor: "Trading 212".to_string(),
-                        blocked: native_account.blocked.unwrap(),
-                        free: native_account.free,
-                        total_funds: native_account.free + native_account.blocked.unwrap_or(0.),
-                        invested: native_account.invested,
-                        ppl: native_account.ppl,
-                        total: native_account.total
-                    }
-                )
-            ]
-        )
+    async fn get_cash(&self) -> Vec<Result<Account,OverseerError>> {
+        let native_account = self.fetch_account_cash().await;
+
+        let overseer_accounts = native_account 
+            .into_iter()
+            .map(
+                |native_account| {
+                    let blocked = native_account.blocked.unwrap_or(0.);
+                    Ok(
+                        Account{
+                            vendor: "Hargeaves Lansdown".to_string(),
+                            blocked,
+                            free: native_account.free,
+                            total_funds: native_account.free + native_account.pie_cash + blocked,
+                            invested: native_account.invested,
+                            ppl: native_account.ppl,
+                            total: native_account.total
+                        }
+                    )
+                }
+            )
+            .collect::<Vec<Result<Account,OverseerError>>>();
+
+        overseer_accounts
 
     }
 

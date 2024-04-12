@@ -2,14 +2,10 @@ use std::ops::AddAssign;
 
 use wasm_bindgen::prelude::*;
 use super::traits::ReadableSecurity;
-use super::enums::Vendor;
+use serde::{Serialize, Deserialize};
 
 #[wasm_bindgen]
-pub struct OverseerVendor {
-    pub vendor: Vendor,
-}
-
-#[wasm_bindgen]
+#[derive(Serialize, Deserialize)]
 pub struct Account {
     #[wasm_bindgen(getter_with_clone)]
     pub vendor: String,
@@ -21,8 +17,8 @@ pub struct Account {
     pub total: f32
 }
 
-impl<'a, 'b> AddAssign<&'b Account> for &'a Account {
-    fn add_assign(&mut self, rhs: &'b Account) {
+impl AddAssign<&Account> for Account {
+    fn add_assign(&mut self, rhs: &Account) {
         self.blocked += rhs.blocked;
         self.free += rhs.free;
         self.total_funds += rhs.total_funds;
@@ -33,6 +29,7 @@ impl<'a, 'b> AddAssign<&'b Account> for &'a Account {
 }
 
 #[wasm_bindgen]
+#[derive(Serialize, Deserialize)]
 pub struct Position {
     #[wasm_bindgen(getter_with_clone)]
     pub vendor: String,
@@ -51,6 +48,7 @@ pub struct Position {
 }
 
 #[wasm_bindgen]
+#[derive(Serialize, Deserialize)]
 pub struct HistoricalTransaction {
     #[wasm_bindgen(getter_with_clone)]
     pub security_id: String,
