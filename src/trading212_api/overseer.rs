@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use super::Trading212;
 use super::portfolio_data::OpenPosition;
 
-use crate::overseer::traits::{OverseenAccount, ReadableSecurity, OverseerError};
+use crate::overseer::traits::{OverseenAccount, ReadableSecurity};
+use crate::overseer::errors::OverseerError;
 use crate::overseer::structs::{Account, HistoricalTransaction, Position}; 
 
 impl ReadableSecurity for OpenPosition {

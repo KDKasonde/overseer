@@ -1,3 +1,5 @@
+use std::ops::AddAssign;
+
 use wasm_bindgen::prelude::*;
 use super::traits::ReadableSecurity;
 use super::enums::Vendor;
@@ -17,6 +19,17 @@ pub struct Account {
     pub invested: f32,
     pub ppl: f32,
     pub total: f32
+}
+
+impl<'a, 'b> AddAssign<&'b Account> for &'a Account {
+    fn add_assign(&mut self, rhs: &'b Account) {
+        self.blocked += rhs.blocked;
+        self.free += rhs.free;
+        self.total_funds += rhs.total_funds;
+        self.total += rhs.total;
+        self.invested += rhs.invested;
+        self.ppl += rhs.ppl; 
+    }
 }
 
 #[wasm_bindgen]

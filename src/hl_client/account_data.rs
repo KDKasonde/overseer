@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::overseer::traits::OverseerError;
+use crate::overseer::errors::OverseerError;
 
 use super::HL;
 use scraper::Html;

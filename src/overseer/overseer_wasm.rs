@@ -1,9 +1,12 @@
+use std::future::IntoFuture;
+
 use wasm_bindgen::prelude::*;
 use serde::Deserialize;
 
 use crate::hl_client::HL;
 use crate::overseer::structs::{Account, Position, HistoricalTransaction};
 use crate::overseer::traits::OverseenAccount;
+use crate::overseer::errors::OverseerError;
 use crate::trading212_api::Trading212;
 
 
@@ -60,58 +63,49 @@ impl OverSeen {
             }
         }
     }
-}
 
-#[wasm_bindgen]
-pub struct JSPosition {
-    #[wasm_bindgen(getter_with_clone)]
-    pub vendor: String,
-    #[wasm_bindgen(getter_with_clone)]
-    pub security_id: String,
-    #[wasm_bindgen(getter_with_clone)]
-    pub security_name: String,
-    #[wasm_bindgen(getter_with_clone)]
-    pub security_name_subtext: String,
-    pub total_value: f32,
-    pub total_cost: f32,
-    pub current_price: f32,
-    pub ppl: f32,
-    pub ppl_as_perc: f32,
-    pub quantity: f32
-}
+    pub fn get_accounts(&self) -> Result<Vec<Result<Account,OverseerError>>,OverseerError> {
+        self.overseen_account.get_cash()
+    }
+     
+    pub async fn get_vendor_summary(&self) -> Result<Account, OverseerError> {
+        let all_accounts = match self.overseen_account.get_cash().await {
+            Ok(accounts) => {
+                accounts
+            },
+            Err(OverseerError) => {
+                return OverseerError
+            }
+        };
+        let mut overview = Account {
+           vendor : self.vendor,
+           blocked : 0., 
+           free : 0.,
+           total_funds : 0.,
+           invested : 0.,
+           ppl : 0., 
+           total : 0. 
+        };
 
-#[wasm_bindgen]
-pub struct JSAccount {
-    #[wasm_bindgen(getter_with_clone)]
-    pub vendor: String,
-    pub blocked: f32,
-    pub free: f32,
-    pub total_funds: f32,
-    pub invested: f32,
-    pub ppl: f32,
-    pub total: f32
-}
+        let account = all_accounts
+            .iter()
+            .map(
+                |account| {
+                    let account = match account {
+                        Ok(account_data) => {
+                            overview += account_data;
 
-#[wasm_bindgen]
-pub struct JSHistoricalTransaction {
-    #[wasm_bindgen(getter_with_clone)]
-    pub security_id: String,
-    #[wasm_bindgen(getter_with_clone)]
-    pub security_name: Option<String>,
-    #[wasm_bindgen(getter_with_clone)]
-    pub security_name_subtext: Option<String>,
-    #[wasm_bindgen(getter_with_clone)]
-    pub date: String,
-    pub unit_cost: f32,
-    pub quantity: f32,
-    pub cost: f32,
-    #[wasm_bindgen(getter_with_clone)]
-    pub transaction_type: String,
-}
+                        },
+                        Err(e) => {
+                            return e
+                        }
+                    };
+                }
+                )
+            .collect();
 
-#[wasm_bindgen]
-pub fn test(positon_id: ) -> String{
-    Position.get_security_id()
+        Ok(overview)
+    }
 }
 
 

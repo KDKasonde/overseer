@@ -1,4 +1,4 @@
-use crate::overseer::traits::OverseerError;
+use crate::overseer::errors::OverseerError;
 
 use super::Trading212;
 
