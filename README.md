@@ -1,5 +1,6 @@
 # overseer
-<i>The vendors supported here may use unofficial apis, as some vendors do not supply public apis</i>
+<i>The vendors supported here may use unofficial apis, as some vendors do not supply public apis.</i>
+
 This project is made to have a unified view of any and all investment accounts.
 This allows users to get a wholistic view over their holdings in with the valuations 
 their brokers use in a convenient way.
