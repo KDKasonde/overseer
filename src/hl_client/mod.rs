@@ -14,10 +14,10 @@ use scraper::{selectable::Selectable, ElementRef, Html, Selector};
 use self::account_data::Cash;
 
 pub struct Account {
-    account_id: String,
-    account_link: String,
-    account_name: String,
-    account_details: Cash
+    pub account_id: String,
+    pub account_link: String,
+    pub account_name: String,
+    pub account_details: Cash
 }
 
 pub struct HL {
@@ -26,6 +26,7 @@ pub struct HL {
 }
 
 impl HL {
+    /// Initialise new HL instance.
     pub fn new() -> HL {
 
         let mut headers = header::HeaderMap::new();
@@ -56,6 +57,7 @@ impl HL {
         }
     }
     
+    /// Fetch url and unwrap is properly.
     async fn fetch_url(&self, url: String) -> Option<Html> {
         let client = &self.client;
 
@@ -72,6 +74,8 @@ impl HL {
 
     }
 
+    /// Pass in a css_selector and HTML element, this will search for a href 
+    /// with the segment and parsed the resulting html.
     async fn navigate_to_link_<'a>(&self, css_selector: &str, raw_html: &scraper::ElementRef<'a>) -> Option<Html> {
         let html_selector = Selector::parse(css_selector).ok()?;
         let link = raw_html
@@ -83,6 +87,7 @@ impl HL {
 
     }
 
+    /// Returns all accounts along with thier Cash details.
     pub async fn fetch_accounts(&self) -> Vec<Account> {
         let overview_url = "https://online.hl.co.uk/my-accounts/portfolio_overview"; 
         let parsed_html = self.fetch_url(overview_url.to_string()).await.unwrap(); 

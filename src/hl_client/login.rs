@@ -6,6 +6,8 @@ use regex::Regex;
 
 impl HL {
 
+    /// Authenticate the user and store relevant cookie data for 
+    /// persistent usage.
     pub async fn login(
         &self,
         username: String,
@@ -50,9 +52,11 @@ impl HL {
 
     }
 
+    /// Clear cookie data in memory.
     pub async fn logout(&self) {
     }
-
+ 
+    /// Clear secound step auth on hl.
     pub async fn post_password_and_secure_number(
         &self, 
         hl_vt: String, 
@@ -78,6 +82,7 @@ impl HL {
         
     }
 
+    /// Clear first step in HL auth.
     async fn post_username_and_dob(&self,hl_vt: String, username: String, date_of_birth: String) {
         
         let client = &self.client;

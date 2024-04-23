@@ -1,9 +1,14 @@
 use std::fmt;
 
+/// Custom errors for the overseer crate to help distinguish issues stemmung
+/// changes in websites where scraping is used or public apis.
 #[derive(Debug)]
 pub enum OverseerError { 
+    /// Flag when account unique id is required but not given
     MissingAccountId, 
+    /// Flag when a field is expected in a fetch but cant be found.
     MissingData {dataField: String},
+    /// Flag when a fetch fails completely.
     FailedFetch {url: String}
 }
 

@@ -6,21 +6,33 @@ use super::utils::ScrapedValue;
 use serde::Deserialize;
 use scraper::{ElementRef, Selector};
 
-
+/// Struct holding data about a transaction 
+/// that took place in the past.
 #[derive(Debug, Deserialize)]
 pub struct HistoricalOrder {
+    /// Id of the security the transaction took place on.
     pub security_id: String,
+    /// The name of the security.
     pub security_name: String,
+    /// The sub text e.g. class of shares.
     pub security_name_subtext: String,
+    /// Date the transaction was executed.
     pub date: String,
+    /// The cost of the transaction.
     pub unit_cost: f32,
+    /// Multiplier for the unit_cost.
     pub quantity: f32,
+    /// Total cost.
     pub cost: f32,
+    /// The type of transaction that took place.
     pub transaction_type: String,
 }
 
 impl HL {
 
+    /// Fetches historical transactions for a given security id,
+    /// parsing through the resulting HTML table returned by the 
+    /// request. Using each row as a historical transaction.
     pub async fn fetch_historical_transaction(&self, security_id: String, security_name: String, security_name_subtext: String) -> Vec<HistoricalOrder> {
         let security_url = format!("{}/my-accounts/security_movements/sedol/{}", self.base_url, security_id); 
         
@@ -34,7 +46,6 @@ impl HL {
         for row in parsed_html.select(&transactions_selector).into_iter() {
             
             let historical_transaction = parse_transaction_information(&row);
-            println!("{:?}", &historical_transaction);
             let transaction = HistoricalOrder {
                 security_id: security_id.clone(),
                 security_name: security_name.clone(),
@@ -50,6 +61,7 @@ impl HL {
         historical_transactions 
     } 
 
+    /// Fetches all historical transactions on the account.
     pub async fn fetch_all_historical_transactions(&self, securities: Vec<Box<dyn ReadableSecurity>>) -> Vec<HistoricalOrder> {
         let mut historical_transactions: Vec<HistoricalOrder> = Vec::new();
 

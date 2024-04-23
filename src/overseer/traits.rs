@@ -3,14 +3,19 @@ use async_trait::async_trait;
 
 use super::structs::{Account, HistoricalTransaction, Position};
 use super::errors::OverseerError;
-use std::future::Future;
 
-
+/// Interface to allow all types of vendor accounts to be summarised as 
+/// one and enable more target devices to access their implementations
 #[async_trait(?Send)]
 pub trait OverseenAccount {
+    /// Retrieve the account information and cash balance.
     async fn get_cash(&self) -> Vec<Result<Account,OverseerError>>;
+    /// Retrieve the assets currently held within the account.
     async fn get_asset_summary (&self) -> Vec<Position>;
-    async fn get_historical_transactions (&self, position: Box<dyn ReadableSecurity>) -> Vec<HistoricalTransaction>;    
+    /// Retrieve the historical transactions of the position that has been passed into 
+    /// the function.
+    async fn get_historical_transactions (&self, position: Box<dyn ReadableSecurity>) -> Vec<HistoricalTransaction>;
+    /// Retrieve all historical transactions on the account.
     async fn get_all_historical_transactions(&self) -> Vec<HistoricalTransaction> {
         let all_positions = self.get_asset_summary().await;
         let mut history = Vec::new();
@@ -21,17 +26,14 @@ pub trait OverseenAccount {
         }
         history
     }
+    /// Login to account if required.
     async fn login(&self, username: Option<String>, date_of_birth: Option<String>, password: Option<String>, secure_number: Option<String>) {
         panic!("login is not required for this account!")
     }
+    /// End a login session safely.
     async fn logout(&self) {
         panic!("logout is not required for this account!")
     }
-}
-
-pub trait LoginRequired {
-    fn login(&self) -> impl Future<Output = ()>;
-    fn logout(&self) -> impl Future<Output = ()>;
 }
 
 pub trait ReadableSecurity {

@@ -5,29 +5,32 @@ use serde::Deserialize;
 use scraper::{ElementRef, Selector};
 
 
-
-
+/// Struct denoting current open postions.
 #[derive(Debug, Deserialize)]
 pub struct OpenPosition {
+    /// Id of the security the transaction took place on.
     pub security_id: String,
+    /// The name of the security.
     pub security_name: String,
+    /// The sub text e.g. class of shares.
     pub security_name_subtext: String,
+    /// Total_value of the postion
     pub total_value: f32,
+    /// Total amount paid to enter the position. 
     pub total_cost: f32,
-    pub current_price: f32,
+    /// Current unit price of the positions underlying asset
+    pub current_price: f32, 
+    /// Profit/Loss on the postion
     pub ppl: f32,
-    pub ppl_as_perc: f32,
+    /// Profit/Loss on the position as percentage.
+    pub ppl_as_perc: f32, 
+    /// Quanitity of underlying asset held.
     pub quantity: f32
 }
-
-#[derive(Debug, Deserialize)]
-pub struct AllOpenPositions {
-    pub positions: Option<Vec<Option<OpenPosition>>>,
-}
-
+ 
 impl HL {
 
-     
+    /// Fetches the portofolios across the entire account.     
     pub async fn fetch_portfolio_position(&self) -> Vec<OpenPosition> {
         let overview_url = "https://online.hl.co.uk/my-accounts/portfolio_overview"; 
         let parsed_html = self.fetch_url(overview_url.to_string()).await.unwrap(); 

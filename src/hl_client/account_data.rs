@@ -7,17 +7,27 @@ use scraper::Html;
  
 use scraper::Selector;
 
+/// Struct representing the cash value of an 
+/// account.
 pub struct Cash {
+    /// funds which are blocked but in the account.
     pub blocked: f32,
-    pub free: f32,
+    /// funds which are free to be spent in the account. 
+    pub free: f32, 
+    /// total funds in the account.
     pub total_funds: f32,
+    /// cash value of current asset holdings.
     pub invested: f32,
+    /// profit/loss figure in account currency.
     pub ppl: f32,
+    /// total value of cash and investments.
     pub total: f32,
 }
 
 impl HL {
 
+    /// Fetches the account information and formats the data in to a Cash 
+    /// struct.
     pub async fn fetch_account_cash(&self, account_link: &String, free_funds: f32) -> Result<Cash, OverseerError> {
 
         let raw_page = self.fetch_url(account_link.to_string()).await;
@@ -82,6 +92,9 @@ impl HL {
 
     }
 
+    /// Fetches all accounts attached to the account and returns a list of
+    /// cash structs. If the available cash can not be pulled then an OverseerError
+    /// is returned.
     pub async fn fetch_all_account_cash(&self) -> Result<Vec<Result<Cash, OverseerError>>, OverseerError> {
         let overview_url = "https://online.hl.co.uk/my-accounts/portfolio_overview"; 
         let parsed_html = self.fetch_url(overview_url.to_string()).await.unwrap(); 
