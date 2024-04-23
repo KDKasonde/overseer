@@ -1,13 +1,13 @@
 use std::ops::AddAssign;
 
+#[cfg(feature="wasm")]
 use wasm_bindgen::prelude::*;
 use super::traits::ReadableSecurity;
 use serde::{Serialize, Deserialize};
 
-#[wasm_bindgen]
+#[cfg_attr(feature="wasm", wasm_bindgen(getter_with_clone))]
 #[derive(Serialize, Deserialize)]
 pub struct Account {
-    #[wasm_bindgen(getter_with_clone)]
     pub vendor: String,
     pub blocked: f32,
     pub free: f32,
@@ -28,16 +28,12 @@ impl AddAssign<&Account> for Account {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(feature="wasm", wasm_bindgen(getter_with_clone))]
 #[derive(Serialize, Deserialize)]
 pub struct Position {
-    #[wasm_bindgen(getter_with_clone)]
     pub vendor: String,
-    #[wasm_bindgen(getter_with_clone)]
     pub security_id: String,
-    #[wasm_bindgen(getter_with_clone)]
     pub security_name: String,
-    #[wasm_bindgen(getter_with_clone)]
     pub security_name_subtext: String,
     pub total_value: f32,
     pub total_cost: f32,
@@ -47,21 +43,16 @@ pub struct Position {
     pub quantity: f32
 }
 
-#[wasm_bindgen]
+#[cfg_attr(feature="wasm", wasm_bindgen(getter_with_clone))]
 #[derive(Serialize, Deserialize)]
 pub struct HistoricalTransaction {
-    #[wasm_bindgen(getter_with_clone)]
     pub security_id: String,
-    #[wasm_bindgen(getter_with_clone)]
     pub security_name: Option<String>,
-    #[wasm_bindgen(getter_with_clone)]
     pub security_name_subtext: Option<String>,
-    #[wasm_bindgen(getter_with_clone)]
     pub date: String,
     pub unit_cost: f32,
     pub quantity: f32,
     pub cost: f32,
-    #[wasm_bindgen(getter_with_clone)]
     pub transaction_type: String,
 }
 

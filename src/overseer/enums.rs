@@ -1,4 +1,3 @@
-use wasm_bindgen::prelude::*;
 use crate::{
     hl_client::HL,
     trading212_api::Trading212,

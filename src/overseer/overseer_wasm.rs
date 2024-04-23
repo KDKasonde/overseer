@@ -1,12 +1,8 @@
-use std::future::IntoFuture;
-
 use wasm_bindgen::prelude::*;
-use serde::Deserialize;
 
 use crate::hl_client::HL;
-use crate::overseer::structs::{Account, Position, HistoricalTransaction};
+use crate::overseer::structs::Account;
 use crate::overseer::traits::OverseenAccount;
-use crate::overseer::errors::OverseerError;
 use crate::trading212_api::Trading212;
 
 
