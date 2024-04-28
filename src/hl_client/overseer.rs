@@ -106,9 +106,9 @@ impl OverseenAccount for HL {
                         security_name: Some(native_historical_transaction.security_name.to_owned()),
                         security_name_subtext: Some(native_historical_transaction.security_name_subtext.to_owned()),
                         date: native_historical_transaction.date.to_owned(),
-                        unit_cost: native_historical_transaction.unit_cost,
+                        unit_value: native_historical_transaction.unit_value,
                         quantity: native_historical_transaction.quantity,
-                        cost: native_historical_transaction.cost,
+                        value: native_historical_transaction.value,
                         transaction_type: native_historical_transaction.transaction_type.to_owned()
                     }
                 }

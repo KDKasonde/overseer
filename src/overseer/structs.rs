@@ -50,10 +50,22 @@ pub struct HistoricalTransaction {
     pub security_name: Option<String>,
     pub security_name_subtext: Option<String>,
     pub date: String,
-    pub unit_cost: f32,
+    pub unit_value: f32,
     pub quantity: f32,
-    pub cost: f32,
+    pub value: f32,
     pub transaction_type: String,
+}
+
+#[cfg_attr(feature="wasm", wasm_bindgen(getter_with_clone))]
+#[derive(Serialize, Deserialize)]
+pub struct HistoricalDividend {
+    pub security_id: String,
+    pub security_name: Option<String>,
+    pub security_name_subtext: Option<String>,
+    pub date: String,
+    pub unit_value: f32,
+    pub quantity: f32,
+    pub value: f32,
 }
 
 impl ReadableSecurity for Position {

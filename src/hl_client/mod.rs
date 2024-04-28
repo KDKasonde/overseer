@@ -5,10 +5,16 @@ mod login;
 mod utils;
 mod overseer;
 
-use std::sync::Arc;
 use reqwest::{
-    cookie::Jar, header, Client, Url
+    header, Client
 };
+
+#[cfg(not(target_arch="wasm32"))]
+use reqwest::{
+    cookie::Jar, Url
+};
+#[cfg(not(target_arch="wasm32"))]
+use std::sync::Arc;
 use scraper::{selectable::Selectable, ElementRef, Html, Selector};
 
 use self::account_data::Cash;
@@ -27,6 +33,7 @@ pub struct HL {
 
 impl HL {
     /// Initialise new HL instance.
+    #[cfg(not(target_arch="wasm32"))]
     pub fn new() -> HL {
 
         let mut headers = header::HeaderMap::new();
@@ -41,7 +48,6 @@ impl HL {
         jar.add_cookie_str(cookie,&base_url.parse::<Url>().unwrap());
         let client_builder = Client::builder()
             .default_headers(headers)
-            .cookie_store(true)
             .cookie_provider(jar.clone())
             .redirect(reqwest::redirect::Policy::none())
             .build();
@@ -56,6 +62,32 @@ impl HL {
             base_url: base_url.to_string(),
         }
     }
+
+    #[cfg(target_arch="wasm32")]
+    pub fn new() -> HL {
+
+        let mut headers = header::HeaderMap::new();
+        let base_url = "https://online.hl.co.uk";
+
+        headers.insert(header::USER_AGENT, header::HeaderValue::from_static("overseer"));
+        headers.insert(header::CONTENT_TYPE, header::HeaderValue::from_static("application/json"));
+        headers.insert(header::ACCEPT, header::HeaderValue::from_static("application/json"));
+
+        let client_builder = Client::builder()
+            .default_headers(headers)
+            .build();
+        
+        let output_client = match client_builder {
+            Ok(client) => client,
+            Err(_error) => panic!("Error creating client instance!")
+        };
+
+        HL {
+            client: output_client,
+            base_url: base_url.to_string(),
+        }
+    }
+
     
     /// Fetch url and unwrap is properly.
     async fn fetch_url(&self, url: String) -> Option<Html> {

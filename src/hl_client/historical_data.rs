@@ -18,12 +18,12 @@ pub struct HistoricalOrder {
     pub security_name_subtext: String,
     /// Date the transaction was executed.
     pub date: String,
-    /// The cost of the transaction.
-    pub unit_cost: f32,
-    /// Multiplier for the unit_cost.
+    /// The cost/profit of the transaction.
+    pub unit_value: f32,
+    /// Multiplier for the unit_value.
     pub quantity: f32,
-    /// Total cost.
-    pub cost: f32,
+    /// Total gain/loss
+    pub value: f32,
     /// The type of transaction that took place.
     pub transaction_type: String,
 }
@@ -51,9 +51,9 @@ impl HL {
                 security_name: security_name.clone(),
                 security_name_subtext: security_name_subtext.clone(),
                 date: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[0].1).unwrap().try_into().unwrap(),
-                unit_cost: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[1].1).unwrap().try_into().unwrap(),
+                unit_value: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[1].1).unwrap().try_into().unwrap(),
                 quantity: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[2].1).unwrap().try_into().unwrap(),
-                cost: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[3].1).unwrap().try_into().unwrap(),  
+                value: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[3].1).unwrap().try_into().unwrap(),  
                 transaction_type: <Option<ScrapedValue> as Clone>::clone(&historical_transaction[4].1).unwrap().try_into().unwrap(),
             };
             historical_transactions.push(transaction);
@@ -61,7 +61,6 @@ impl HL {
         historical_transactions 
     } 
 
-    /// Fetches all historical transactions on the account.
     pub async fn fetch_all_historical_transactions(&self, securities: Vec<Box<dyn ReadableSecurity>>) -> Vec<HistoricalOrder> {
         let mut historical_transactions: Vec<HistoricalOrder> = Vec::new();
 
@@ -85,7 +84,7 @@ impl HL {
 fn parse_transaction_information(parsed_account_page: &ElementRef) -> Vec<(String, Option<ScrapedValue>)> {
     let table_cell_selectors = [
         ("date", r#"td:nth-child(1)"#),
-        ("unit_cost", r#"td:nth-child(4)"#),
+        ("unit_value", r#"td:nth-child(4)"#),
         ("quantity", r#"td:nth-child(5)"#),
         ("cost", r#"td:nth-child(6)"#),
         ("type", r#"td:nth-child(2)"#),

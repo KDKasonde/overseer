@@ -85,9 +85,9 @@ impl OverseenAccount for Trading212 {
                         security_name: None,
                         security_name_subtext: None,
                         date: native_historical_transaction.date_executed.to_owned(),
-                        unit_cost: native_historical_transaction.limit_price,
+                        unit_value: native_historical_transaction.limit_price,
                         quantity: native_historical_transaction.filled_quantity,
-                        cost: native_historical_transaction.filled_value,
+                        value: native_historical_transaction.filled_value,
                         transaction_type: native_historical_transaction.item_type.to_owned()
                     }
                 }
