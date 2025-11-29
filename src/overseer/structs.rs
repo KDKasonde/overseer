@@ -1,20 +1,39 @@
 use std::ops::AddAssign;
 
-#[cfg(feature="wasm")]
+#[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 use super::traits::ReadableSecurity;
-use serde::{Serialize, Deserialize};
+use super::enums::{Asset, TransactionType};
+use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
-#[cfg_attr(feature="wasm", wasm_bindgen(getter_with_clone))]
-#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", wasm_bindgen(getter_with_clone))]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct Portfolio {
+    pub accounts: Vec<Account>,
+}
+
+impl Portfolio {
+    pub fn new() -> Self {
+        Portfolio::default()
+    }
+
+    pub fn add_account(&mut self, account: Account) {
+        self.accounts.push(account);
+    }
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen(getter_with_clone))]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Account {
-    pub vendor: String,
-    pub blocked: f32,
-    pub free: f32,
-    pub total_funds: f32,
-    pub invested: f32,
-    pub ppl: f32,
-    pub total: f32
+    pub source: String,
+    pub blocked: Decimal,
+    pub free: Decimal,
+    pub total_funds: Decimal,
+    pub invested: Decimal,
+    pub ppl: Decimal,
+    pub total: Decimal,
 }
 
 impl AddAssign<&Account> for Account {
@@ -24,61 +43,40 @@ impl AddAssign<&Account> for Account {
         self.total_funds += rhs.total_funds;
         self.total += rhs.total;
         self.invested += rhs.invested;
-        self.ppl += rhs.ppl; 
+        self.ppl += rhs.ppl;
     }
 }
 
-#[cfg_attr(feature="wasm", wasm_bindgen(getter_with_clone))]
-#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", wasm_bindgen(getter_with_clone))]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Position {
-    pub vendor: String,
-    pub security_id: String,
-    pub security_name: String,
-    pub security_name_subtext: String,
-    pub total_value: f32,
-    pub total_cost: f32,
-    pub current_price: f32,
-    pub ppl: f32,
-    pub ppl_as_perc: f32,
-    pub quantity: f32
+    pub source: String,
+    pub asset: Asset,
+    pub total_value: Decimal,
+    pub total_cost: Decimal,
+    pub current_price: Decimal,
+    pub ppl: Decimal,
+    pub ppl_as_perc: Decimal,
+    pub quantity: Decimal,
 }
 
-#[cfg_attr(feature="wasm", wasm_bindgen(getter_with_clone))]
-#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm", wasm_bindgen(getter_with_clone))]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HistoricalTransaction {
-    pub security_id: String,
-    pub security_name: Option<String>,
-    pub security_name_subtext: Option<String>,
-    pub date: String,
-    pub unit_value: f32,
-    pub quantity: f32,
-    pub value: f32,
-    pub transaction_type: String,
-}
-
-#[cfg_attr(feature="wasm", wasm_bindgen(getter_with_clone))]
-#[derive(Serialize, Deserialize)]
-pub struct HistoricalDividend {
-    pub security_id: String,
-    pub security_name: Option<String>,
-    pub security_name_subtext: Option<String>,
-    pub date: String,
-    pub unit_value: f32,
-    pub quantity: f32,
-    pub value: f32,
+    pub asset: Asset,
+    pub date: DateTime<Utc>,
+    pub unit_price: Decimal,
+    pub quantity: Decimal,
+    pub total_value: Decimal,
+    pub transaction_type: TransactionType,
 }
 
 impl ReadableSecurity for Position {
-    fn get_security_id(&self) -> String {
-        self.security_id.to_owned()
+    fn get_asset(&self) -> Asset {
+        self.asset.clone()
     }
 
-    fn get_security_name(&self) -> Option<String> {
-        Some(self.security_name.to_owned())
-    }
-
-    fn get_vendor(&self) -> String {
-        self.vendor.to_owned()
+    fn get_source(&self) -> String {
+        self.source.clone()
     }
 }
-

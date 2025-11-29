@@ -7,7 +7,7 @@ pub enum OverseerError {
     /// Flag when account unique id is required but not given
     MissingAccountId, 
     /// Flag when a field is expected in a fetch but cant be found.
-    MissingData {dataField: String},
+    MissingData {data_field: String},
     /// Flag when a fetch fails completely.
     FailedFetch {url: String}
 }
@@ -18,8 +18,8 @@ impl fmt::Display for OverseerError {
             OverseerError::MissingAccountId => { 
                 write!(f, "Account id is invalid!")
             },
-            OverseerError::MissingData {dataField} => {
-                write!(f, "Corrupt field could not fetch field '{}'", dataField)
+            OverseerError::MissingData {data_field} => {
+                write!(f, "Corrupt field could not fetch field '{}'", data_field)
             },
             OverseerError::FailedFetch {url} => {
                 write!(f, "Failed to reach '{}'", url)

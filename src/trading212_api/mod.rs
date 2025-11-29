@@ -4,6 +4,7 @@ mod pie_data;
 mod instrument_metadata;
 mod account_data;
 mod overseer;
+pub mod csv_parser;
 
 use reqwest::{
     Client,
