@@ -1,0 +1,254 @@
+# PDF Table Parser
+
+A flexible Python-based PDF parser that extracts table data from PDF documents and outputs structured JSON compatible with Rust data structures.
+
+## Features
+
+- **Flexible Table Extraction**: Automatically detects and extracts tables from PDF files
+- **Search by Header**: Find specific tables by searching for header text (e.g., "CAPITAL ACCOUNT TRANSACTIONS")
+- **Multiple Output Formats**: Returns data as pandas DataFrames or JSON
+- **Rust Integration**: JSON output matches Rust structs for seamless interop
+- **Type-Safe Enums**: Uses Python enums instead of magic strings
+- **General Purpose**: Works with various PDF formats and table structures
+- **Case-Insensitive Search**: Default case-insensitive search makes finding tables easier
+
+## Installation
+
+Install the dependencies using uv:
+
+```bash
+cd /path/to/python_pdf_parser
+uv pip install -e .
+```
+
+Or using pip:
+
+```bash
+pip install -e .
+```
+
+## Usage
+
+### Extract All Tables from a PDF
+
+```bash
+python src/main.py path/to/document.pdf
+```
+
+### Search for Specific Tables
+
+```bash
+python src/main.py path/to/document.pdf --table "CAPITAL ACCOUNT TRANSACTIONS"
+```
+
+### JSON Output for Rust Integration
+
+```bash
+python src/main.py path/to/document.pdf --json --table "CAPITAL ACCOUNT TRANSACTIONS"
+```
+
+This outputs structured JSON that can be directly deserialized into Rust structs.
+
+### Examples
+
+```bash
+# Extract all tables from an investment report
+python src/main.py "Autumn 2025 - Investment Report.pdf"
+
+# Find CAPITAL ACCOUNT TRANSACTIONS table (human-readable)
+python src/main.py "Autumn 2025 - Investment Report.pdf" --table "CAPITAL ACCOUNT TRANSACTIONS"
+
+# Get JSON output for Rust
+python src/main.py "Autumn 2025 - Investment Report.pdf" --json --table "CAPITAL ACCOUNT TRANSACTIONS"
+```
+
+## Using as a Python Module
+
+You can also use the parser in your own Python scripts:
+
+```python
+from src.main import PDFTableParser, HLTransactionParser
+
+# Initialize the parser
+parser = PDFTableParser("path/to/document.pdf")
+
+# Find specific tables
+results = parser.find_table_by_header("CAPITAL ACCOUNT TRANSACTIONS")
+
+for result in results:
+    print(f"Found on page {result['page']}")
+    df = result['dataframe']  # pandas DataFrame
+    print(df)
+
+# Parse transactions
+transaction_parser = HLTransactionParser()
+for result in results:
+    transactions = transaction_parser.parse_capital_account_transactions(result['dataframe'])
+    for tx in transactions:
+        print(tx.to_dict())
+```
+
+## Data Structures
+
+### Python Classes
+
+The parser uses Python dataclasses and enums that mirror Rust types:
+
+```python
+class TransactionType(str, Enum):
+    BUY = "Buy"
+    SELL = "Sell"
+    DIVIDEND = "Dividend"
+    DEPOSIT = "Deposit"
+    WITHDRAWAL = "Withdrawal"
+    FEE = "Fee"
+    UNKNOWN = "Unknown"
+
+@dataclass
+class Stock:
+    ticker: str
+    isin: str
+    name: str
+
+@dataclass
+class HistoricalTransaction:
+    asset: Asset
+    date: str  # ISO 8601 format
+    unit_price: str
+    quantity: str
+    total_value: str
+    transaction_type: TransactionType
+```
+
+### JSON Output Format
+
+```json
+{
+  "transactions": [
+    {
+      "asset": {
+        "Stock": {
+          "ticker": "BKDRYJ4",
+          "isin": "BKDRYJ4",
+          "name": "Airtel Africa plc"
+        }
+      },
+      "date": "2025-08-05T00:00:00Z",
+      "unit_price": "2.1275",
+      "quantity": "141",
+      "total_value": "-313.44",
+      "transaction_type": "Buy"
+    }
+  ]
+}
+```
+
+## Rust Integration
+
+See [RUST_INTEGRATION.md](RUST_INTEGRATION.md) for detailed instructions on using this parser with Rust.
+
+Quick example:
+
+```rust
+use std::process::Command;
+use serde_json::Value;
+
+fn parse_pdf_transactions(pdf_path: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    let output = Command::new("python")
+        .arg("src/main.py")
+        .arg(pdf_path)
+        .arg("--json")
+        .arg("--table")
+        .arg("CAPITAL ACCOUNT TRANSACTIONS")
+        .output()?;
+
+    let json_str = String::from_utf8(output.stdout)?;
+    let data: Value = serde_json::from_str(&json_str)?;
+    Ok(data)
+}
+```
+
+## Testing
+
+Test the JSON output:
+
+```bash
+python test_json_output.py
+```
+
+## Output Format
+
+Each table result includes:
+- `page`: Page number where the table was found
+- `table_index`: Index of the table on that page
+- `data`: Raw table data as a list of lists
+- `dataframe`: pandas DataFrame representation of the table
+
+For Capital Account Transactions with `--json` flag:
+- `transactions`: Array of HistoricalTransaction objects
+- Each transaction includes asset info, date, prices, quantities, and type
+- All numeric values are strings to preserve precision
+- Dates are in ISO 8601 format
+
+## Dependencies
+
+- `pdfplumber>=0.11.0` - For PDF parsing and table extraction
+- `pandas>=2.0.0` - For data manipulation and display
+
+## How It Works
+
+1. Opens the PDF file using pdfplumber
+2. Searches each page for tables
+3. If a search term is provided, filters tables containing that text
+4. Cleans and formats the table data
+5. For Capital Account Transactions, parses into structured HistoricalTransaction objects
+6. Returns results as DataFrames or JSON
+
+## Features Detail
+
+### Transaction Type Mapping
+
+The parser intelligently maps Hargreaves Lansdown transaction types to standardized enum values:
+- "Bought" → `TransactionType.BUY`
+- "Sold" → `TransactionType.SELL`
+- "Income Re-Investment" / "Dividend" → `TransactionType.DIVIDEND`
+- "Lifetime ISA Bonus" / "Interest" → `TransactionType.DEPOSIT`
+- Management fees → `TransactionType.FEE`
+
+### Financial Value Parsing
+
+- Handles parentheses for negative values: "(123.45)" → -123.45
+- Removes currency symbols and commas
+- Converts pence to pounds when appropriate
+- Preserves precision using Decimal type
+
+### Stock Information Extraction
+
+- Extracts ticker symbols from transaction details
+- Captures SEDOL/ISIN codes
+- Parses stock names from descriptions
+- Handles various naming formats
+
+## Notes
+
+- The parser uses case-insensitive search by default
+- Tables are automatically cleaned (None values replaced, empty rows removed)
+- First row of each table is used as column headers in the DataFrame
+- Works with various PDF formats without being specific to any document type
+- No magic strings - all constants use type-safe enums
+
+## Project Structure
+
+```
+python_pdf_parser/
+├── src/
+│   └── main.py              # Main parser implementation
+├── test_json_output.py      # Test script for JSON output
+├── RUST_INTEGRATION.md      # Detailed Rust integration guide
+├── pyproject.toml           # Python project configuration
+└── README.md                # This file
+```
+
+## License
+
+This project is designed to integrate with the [overseer](https://github.com/KDKasonde/overseer) portfolio management system.

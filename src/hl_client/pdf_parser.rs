@@ -1,315 +1,214 @@
-use crate::overseer::{
-    enums::{Asset, Stock, TransactionType},
-    structs::HistoricalTransaction,
-};
+use crate::overseer::structs::HistoricalTransaction;
 use anyhow::{Context, Result};
-use chrono::{NaiveDate, TimeZone, Utc};
-use pdf_extract::extract_text;
-use regex::Regex;
-use rust_decimal::Decimal;
-use rust_decimal::prelude::FromStr;
+use serde::Deserialize;
 use std::path::Path;
+use std::process::Command;
 
-// --- Helper Functions ---
-
-/// Parses financial strings in format "1,234.56" or "(123.45)".
-fn parse_financial(input: &str) -> Result<Decimal> {
-    let s = input.trim(); // Corrected: use input.trim()
-    if s == "-" || s.is_empty() {
-        return Ok(Decimal::ZERO);
-    }
-
-    let is_negative = s.starts_with('(') && s.ends_with(')');
-    // Remove chars that interfere with parsing
-    let clean = s.replace(&['(', ')', ',', '£'][..], "");
-
-    let mut val = Decimal::from_str(&clean)
-        .with_context(|| format!("Failed to parse decimal from '{}'", input))?;
-
-    if is_negative {
-        val = -val;
-    }
-    Ok(val)
+/// Response structure matching Python parser's JSON output
+#[derive(Debug, Deserialize)]
+struct TransactionsResponse {
+    transactions: Vec<HistoricalTransaction>,
 }
 
-// --- Core Parsing Logic ---
-
+/// Parses Hargreaves Lansdown PDF using Python pdfplumber-based parser.
+///
+/// This function calls the external Python script that uses pdfplumber
+/// for robust table extraction. See python_pdf_parser/RUST_INTEGRATION.md
+/// for details on the integration.
+///
+/// # Arguments
+///
+/// * `path` - Path to the PDF file to parse
+///
+/// # Returns
+///
+/// A vector of `HistoricalTransaction` objects extracted from the
+/// "CAPITAL ACCOUNT TRANSACTIONS" table in the PDF.
+///
+/// # Security
+///
+/// - For file paths, passes the path directly to the Python script
+/// - For HTTP/network data, use `parse_hl_pdf_from_bytes` with secure temp files
+///
+/// # Example
+///
+/// ```no_run
+/// use overseer::hl_client::pdf_parser::parse_hl_pdf;
+///
+/// let transactions = parse_hl_pdf("Investment Report.pdf")?;
+/// println!("Parsed {} transactions", transactions.len());
+/// ```
 pub fn parse_hl_pdf<P: AsRef<Path>>(path: P) -> Result<Vec<HistoricalTransaction>> {
-    // 1. Ingestion
-    let raw_text = extract_text(path.as_ref())
-        .with_context(|| format!("Failed to extract text from {:?}", path.as_ref()))?;
+    let pdf_path = path.as_ref();
 
-    // 2. Sanitization (The Flattening)
-    let mut clean_lines = Vec::new();
-    let mut in_table = false;
+    // Get the project root directory (assuming we're in src/hl_client/)
+    let current_dir = std::env::current_dir()
+        .context("Failed to get current directory")?;
 
-    for line in raw_text.lines() {
-        let t = line.trim();
+    let python_script = current_dir.join("python_pdf_parser/src/main.py");
+    let python_venv = current_dir.join("python_pdf_parser/.venv/bin/python3");
 
-        // Start of the relevant section - look for transaction table headers
-        if t.contains("Transaction Details") ||
-           (t.contains("LIFETIME ISA") && !t.contains("DETAILED VALUATION")) {
-            in_table = true;
-            continue;
-        }
-
-        // End of the relevant section - multiple possible markers
-        if t.contains("CAPITAL ACCOUNT TRANSACTIONS")
-            || t.contains("INCOME ACCOUNT TRANSACTIONS")
-            || t.contains("BENEFITS OF BEING WITH HL")
-            || t.contains("Venue of Execution")
-            || t.contains("Code Description")
-            || t.starts_with("The suggested minimum")
-            || t.starts_with("The capital account") {
-            in_table = false;
-        }
-
-        if in_table {
-            // Filter out noise
-            if t.is_empty()
-                || t.starts_with("PAGE")
-                || t.contains("Continued from")
-                || t.contains("Transaction Date")
-                || t.contains("Balance Brought Forward")
-                || t.contains("Trade Type")
-                || t.contains("Sedol Venue")
-                || t == "Value"
-                || t == "£"
-                || t == "Units"
-                || t.contains("Bought/Sold")
-                || t.contains("Unit Price")
-                || t == "Pence"
-                || t == "Code"
-                || t.starts_with("-")
-            {
-                continue;
-            }
-            clean_lines.push(line);
-        }
-    }
-    // 3. Segmentation - find all transaction markers in the full text
-    let full_text = clean_lines.join("\n");
-    let mut transactions = Vec::new();
-
-    // Pattern to find transaction date/type: "DD/MM/YYYY Bought|Sold"
-    // This can appear at the start of a line or embedded within a line
-    let txn_pattern = Regex::new(r"\d{2}/\d{2}/\d{4}\s+(Bought|Sold)")?;
-
-    // Find all matches
-    let matches: Vec<_> = txn_pattern.find_iter(&full_text).collect();
-
-    for (idx, match_item) in matches.iter().enumerate() {
-        let match_start = match_item.start();
-        let match_end = match_item.end();
-
-        // Find the start of this transaction block by looking backwards for the units line (starts with dot)
-        let mut block_start = match_start.saturating_sub(200);
-        if let Some(units_pos) = full_text[block_start..match_start].rfind(|c| c == '.') {
-            // Find the start of the line that contains the dot
-            if let Some(line_start) = full_text[..block_start + units_pos].rfind('\n') {
-                block_start = line_start + 1;
-            }
-        }
-
-        // Find the end of this transaction: look for "UT" after the "Bought" keyword
-        // Stop at the next transaction's units line (next dot at line start) or end of text
-        let after_bought = &full_text[match_end..];
-        let mut block_end = full_text.len();
-
-        // First, find the "UT" marker for this transaction
-        if let Some(ut_pos) = after_bought.find("UT") {
-            let tentative_end = match_end + ut_pos + 2; // +2 for "UT"
-
-            // Now look for the next transaction (next line starting with dot)
-            if idx + 1 < matches.len() {
-                // Use the next match as the boundary
-                block_end = matches[idx + 1].start();
-            } else {
-                block_end = tentative_end + 20; // Add some buffer
-            }
-        }
-
-        let block = &full_text[block_start..block_end.min(full_text.len())];
-
-        match parse_single_transaction(block) {
-            Ok(txn) => transactions.push(txn),
-            Err(e) => eprintln!("Failed to parse transaction:\n{}\nError: {}", &block[..block.len().min(300)], e),
-        }
+    // Verify Python script exists
+    if !python_script.exists() {
+        return Err(anyhow::anyhow!(
+            "Python parser script not found at {:?}. Expected: {:?}",
+            python_script,
+            current_dir.join("python_pdf_parser/src/main.py")
+        ));
     }
 
-    // Also handle Management Fee and Interest transactions
-    let fee_pattern = Regex::new(r"\([\d.]+\)\s*Management Fee")?;
-    let interest_pattern = Regex::new(r"[\d.]+\s*Interest\s+:")?;
+    // Determine which Python interpreter to use
+    // Priority: 1. Virtual environment python, 2. System python3
+    let python_cmd = if python_venv.exists() {
+        python_venv
+    } else {
+        std::path::PathBuf::from("python3")
+    };
 
-    for pattern in [fee_pattern, interest_pattern] {
-        for match_item in pattern.find_iter(&full_text) {
-            let match_start = match_item.start();
-            let match_end = match_item.end();
+    // Call Python parser
+    // Command: python python_pdf_parser/src/main.py <pdf_path> --json --table "CAPITAL ACCOUNT TRANSACTIONS"
+    let output = Command::new(&python_cmd)
+        .arg(&python_script)
+        .arg(pdf_path)
+        .arg("--json")
+        .arg("--table")
+        .arg("CAPITAL ACCOUNT TRANSACTIONS")
+        .output()
+        .context("Failed to execute Python PDF parser")?;
 
-            // Look forward to find the date and balance
-            let block_end = full_text[match_end..]
-                .char_indices()
-                .filter(|(_, c)| *c == '\n')
-                .nth(1)
-                .map(|(pos, _)| match_end + pos)
-                .unwrap_or(full_text.len());
-
-            let block = &full_text[match_start..block_end];
-
-            match parse_single_transaction(block) {
-                Ok(txn) => transactions.push(txn),
-                Err(e) => eprintln!("Failed to parse fee/interest:\n{}\nError: {}", block, e),
-            }
-        }
+    // Check if command succeeded
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow::anyhow!(
+            "Python parser failed with status {:?}: {}",
+            output.status.code(),
+            stderr
+        ));
     }
 
-    if transactions.is_empty() {
-        eprintln!("No transactions found. Sample text (first 500 chars):");
-        eprintln!("{}", &full_text[..full_text.len().min(500)]);
+    // Parse JSON output
+    let json_str = String::from_utf8(output.stdout)
+        .context("Python parser output is not valid UTF-8")?;
+
+    let response: TransactionsResponse = serde_json::from_str(&json_str)
+        .context("Failed to deserialize JSON from Python parser")?;
+
+    Ok(response.transactions)
+}
+
+#[cfg(feature = "secure-temp-files")]
+use std::io::Write;
+#[cfg(feature = "secure-temp-files")]
+use tempfile::NamedTempFile;
+
+/// Parses Hargreaves Lansdown PDF from bytes using secure temporary file.
+///
+/// This function is recommended when processing PDFs downloaded from HTTP/network
+/// sources or when handling sensitive financial data. It creates a secure temporary
+/// file with restrictive permissions (0o600 on Unix) and automatically cleans up.
+///
+/// # Arguments
+///
+/// * `pdf_bytes` - The PDF file contents as bytes
+///
+/// # Returns
+///
+/// A vector of `HistoricalTransaction` objects extracted from the PDF.
+///
+/// # Security Features
+///
+/// - Creates temporary file with random, unpredictable name
+/// - Sets owner-only permissions (0o600 on Unix)
+/// - Automatic cleanup via RAII when function returns
+/// - Prevents race conditions through atomic file creation
+///
+/// # Example
+///
+/// ```no_run
+/// use overseer::hl_client::pdf_parser::parse_hl_pdf_from_bytes;
+///
+/// let pdf_bytes = std::fs::read("report.pdf")?;
+/// let transactions = parse_hl_pdf_from_bytes(&pdf_bytes)?;
+/// ```
+///
+/// # Note
+///
+/// Requires the "secure-temp-files" feature and the `tempfile` crate.
+/// See python_pdf_parser/SECURE_TEMP_FILES.md for security details.
+#[cfg(feature = "secure-temp-files")]
+pub fn parse_hl_pdf_from_bytes(pdf_bytes: &[u8]) -> Result<Vec<HistoricalTransaction>> {
+    // Create secure temporary file
+    let mut temp_file = NamedTempFile::new()
+        .context("Failed to create secure temporary file")?;
+
+    // Set restrictive permissions: owner read/write only (0o600)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = temp_file.as_file().metadata()
+            .context("Failed to get temp file metadata")?
+            .permissions();
+        perms.set_mode(0o600); // -rw------- (owner only)
+        temp_file.as_file().set_permissions(perms)
+            .context("Failed to set restrictive permissions on temp file")?;
     }
 
+    // Write PDF data
+    temp_file.write_all(pdf_bytes)
+        .context("Failed to write PDF data to temp file")?;
+    temp_file.flush()
+        .context("Failed to flush temp file")?;
+
+    // Parse using the temp file path
+    let transactions = parse_hl_pdf(temp_file.path())?;
+
+    // temp_file is automatically deleted when it goes out of scope
     Ok(transactions)
 }
 
-fn parse_single_transaction(block: &str) -> Result<HistoricalTransaction> {
-    let full_str = block.replace("\n", " ");
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // Find the date (format: DD/MM/YYYY)
-    let date_re = Regex::new(r"\d{2}/\d{2}/\d{4}").unwrap();
-    let date_match = date_re.find(&full_str)
-        .ok_or_else(|| anyhow::anyhow!("No date found in block"))?;
-    let date_str = date_match.as_str();
-    let date = NaiveDate::parse_from_str(date_str, "%d/%m/%Y")?;
+    #[test]
+    #[ignore] // Requires Python environment and sample PDF
+    fn test_parse_spring_2024_pdf() {
+        let transactions = parse_hl_pdf("Spring 2024 - Investment Report.pdf")
+            .expect("Failed to parse Spring 2024 PDF");
 
-    // Determine transaction type
-    let trade_type = if full_str.contains("Bought") {
-        TransactionType::Buy
-    } else if full_str.contains("Sold") {
-        TransactionType::Sell
-    } else if full_str.contains("Management Fee") {
-        TransactionType::Fee
-    } else if full_str.contains("Interest") {
-        TransactionType::Deposit
-    } else {
-        TransactionType::Unknown
-    };
+        assert!(!transactions.is_empty(), "Should parse at least one transaction");
 
-    let mut units = Decimal::ZERO;
-    let mut price = Decimal::ZERO;
-    let mut value = Decimal::ZERO;
-    let mut sedol = String::new();
-    let mut fund_name = String::new();
+        // Check that we have various transaction types
+        let buy_count = transactions.iter()
+            .filter(|t| matches!(t.transaction_type, crate::overseer::enums::TransactionType::Buy))
+            .count();
 
-    if trade_type == TransactionType::Buy || trade_type == TransactionType::Sell {
-        // Parse Buy/Sell transactions
-        // Format: .units price (value) FundName @ venue DD/MM/YYYY Bought/Sold balance SEDOL venue
-
-        // Extract the main transaction line which starts with units
-        // HL Format: .IIIDDD where last 3 digits are decimals, rest are integers
-        // Examples: .7170 -> 7.170, .07769 -> 69.077, .963130 -> 963.130
-        let txn_line_re = Regex::new(r"\.(\d+)\s+([\d,]+\.?\d*)\s+\(([\d,]+\.?\d*)\)").unwrap();
-        if let Some(cap) = txn_line_re.captures(&full_str) {
-            let all_digits = cap.get(1).unwrap().as_str();
-
-            // Split based on digit length:
-            // 4 digits: first 2 decimal, last 2 integer (.7170 -> 70.71)
-            // 5+ digits: first 3 decimal, rest integer (.07769 -> 69.077)
-            // 3 or fewer: all decimal (0.XXX)
-            if all_digits.len() == 4 {
-                let decimal_part = &all_digits[..2];
-                let integer_part = &all_digits[2..];
-                let units_str = format!("{}.{}", integer_part, decimal_part);
-                units = parse_financial(&units_str)?;
-            } else if all_digits.len() > 4 {
-                let decimal_part = &all_digits[..3];
-                let integer_part = &all_digits[3..];
-                let units_str = format!("{}.{}", integer_part, decimal_part);
-                units = parse_financial(&units_str)?;
-            } else {
-                // 3 or fewer digits, all decimal (e.g., .123 -> 0.123)
-                let units_str = format!("0.{}", all_digits);
-                units = parse_financial(&units_str)?;
-            }
-
-            // Price: 33,462.99 (in pence)
-            price = parse_financial(cap.get(2).unwrap().as_str())?;
-
-            // Value: (240.00) - negative because money going out
-            value = parse_financial(cap.get(3).unwrap().as_str())?;
-            value = -value;
-        }
-
-        // Extract SEDOL (7-character alphanumeric code before "UT")
-        // The SEDOL appears right after "Bought balance" in the format: "Bought 123.45SEDOL UT" or "Bought 123.45 SEDOL UT"
-        // Extract it by looking for the pattern: Bought, then numbers, then 7-char code, then UT
-        let sedol_re = Regex::new(r"Bought\s+([\d,.]+)([A-Z0-9]{7})\s*UT\b").unwrap();
-        if let Some(cap) = sedol_re.captures(&full_str) {
-            sedol = cap.get(2).unwrap().as_str().to_string();
-        } else {
-            // Fallback: look for SEDOL with a space between balance and SEDOL
-            let sedol_re2 = Regex::new(r"Bought\s+([\d,.]+)\s+([A-Z][A-Z0-9]{6})\s*UT\b").unwrap();
-            if let Some(cap) = sedol_re2.captures(&full_str) {
-                sedol = cap.get(2).unwrap().as_str().to_string();
-            }
-        }
-
-        // Extract fund name
-        // It's between the closing parenthesis of the value and the @ symbol
-        // The fund name may be followed by "@ venue" or directly by "venue-code date"
-
-        // First, try the standard format: ") FundName @ venue"
-        let name_re = Regex::new(r"\)\s*([^@]+?)\s+@").unwrap();
-        if let Some(cap) = name_re.captures(&full_str) {
-            fund_name = cap.get(1).unwrap().as_str().trim().to_string();
-        } else {
-            // Fallback for concatenated format: ")FundName @ venue-codeDD/MM/YYYY"
-            // Extract everything between ) and @ symbol
-            let name_re2 = Regex::new(r"\)([^@]*?)@").unwrap();
-            if let Some(cap) = name_re2.captures(&full_str) {
-                fund_name = cap.get(1).unwrap().as_str().trim().to_string();
-            } else {
-                // Last resort: extract between ) and a 4-digit venue code
-                let name_re3 = Regex::new(r"\)\s*(.+?)\s+\d{4}\d{2}/\d{2}/\d{4}").unwrap();
-                if let Some(cap) = name_re3.captures(&full_str) {
-                    fund_name = cap.get(1).unwrap().as_str().trim().to_string();
-                }
-            }
-        }
-
-        // Clean up fund name - remove venue codes if they snuck in
-        if fund_name.is_empty() || fund_name == "@" {
-            // Try to extract from context if fund name extraction failed
-            fund_name = "Unknown Fund".to_string();
-        }
-    } else if trade_type == TransactionType::Fee {
-        // Management Fee format: (value) Management Fee : Description date balance
-        let value_re = Regex::new(r"\(([\d,\.]+)\)").unwrap();
-        if let Some(cap) = value_re.captures(&full_str) {
-            value = parse_financial(cap.get(1).unwrap().as_str())?;
-            value = -value; // Fees are negative
-        }
-        fund_name = "Management Fee".to_string();
-    } else if trade_type == TransactionType::Deposit {
-        // Interest format: value Interest : From date TO date date balance
-        let value_re = Regex::new(r"([\d,\.]+)\s*Interest").unwrap();
-        if let Some(cap) = value_re.captures(&full_str) {
-            value = parse_financial(cap.get(1).unwrap().as_str())?;
-        }
-        fund_name = "Interest Payment".to_string();
+        assert!(buy_count > 0, "Should have Buy transactions");
     }
 
-    let asset = Asset::Stock(Stock {
-        ticker: if sedol.is_empty() { "N/A".to_string() } else { sedol },
-        isin: "".to_string(),
-        name: fund_name,
-    });
+    #[test]
+    #[ignore] // Requires Python environment and sample PDF
+    fn test_parse_autumn_2025_pdf() {
+        let transactions = parse_hl_pdf("Autumn 2025 - Investment Report.pdf")
+            .expect("Failed to parse Autumn 2025 PDF");
 
-    Ok(HistoricalTransaction {
-        date: Utc.from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap()).unwrap(),
-        transaction_type: trade_type,
-        asset,
-        quantity: units,
-        unit_price: price,
-        total_value: value,
-    })
+        assert!(!transactions.is_empty(), "Should parse at least one transaction");
+    }
+
+    #[cfg(all(feature = "secure-temp-files", unix))]
+    #[test]
+    fn test_temp_file_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        use tempfile::NamedTempFile;
+
+        let temp_file = NamedTempFile::new().unwrap();
+        let mut perms = temp_file.as_file().metadata().unwrap().permissions();
+        perms.set_mode(0o600);
+        temp_file.as_file().set_permissions(perms).unwrap();
+
+        let metadata = temp_file.as_file().metadata().unwrap();
+        let mode = metadata.permissions().mode();
+
+        assert_eq!(mode & 0o777, 0o600, "Permissions should be 0o600");
+    }
 }
