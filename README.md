@@ -21,5 +21,8 @@ individuals the ability to keep track of their finances in a streamlined way.
 Usually leading to reliance on tools like excel to rebalance portfolio or re-assess
 their circumstances.
 
+# This is not currently being updated
+Eventually moved on to writing [overseer.work](overseer.work) feel free to let me know if this was of interest would be happy to update this repo!
+
 
 
