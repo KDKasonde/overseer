@@ -1,4 +1,5 @@
 use crate::overseer::errors::OverseerError;
+use rust_decimal::Decimal;
 
 use super::Trading212;
 
@@ -7,13 +8,13 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Cash {
-    pub blocked: Option<f32>,
-    pub free: f32,
-    pub invested: f32,
-    pub pie_cash: f32,
-    pub ppl: f32,
-    pub result: f32,
-    pub total: f32,
+    pub blocked: Option<Decimal>,
+    pub free: Decimal,
+    pub invested: Decimal,
+    pub pie_cash: Decimal,
+    pub ppl: Decimal,
+    pub result: Decimal,
+    pub total: Decimal,
 }
 
 #[derive(Debug, Deserialize)]

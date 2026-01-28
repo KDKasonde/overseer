@@ -1,12 +1,31 @@
-use crate::{
-    hl_client::HL,
-    trading212_api::Trading212,
-};
+use serde::{Deserialize, Serialize};
 
-/// Enum to differentiate between vendors when using overseer traits,
-pub enum Vendor {
-    HL(HL),
-    Trading212(Trading212)
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum Asset {
+    Stock(Stock),
+    Crypto(Crypto),
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Stock {
+    pub ticker: String,
+    pub isin: String,
+    pub name: String,
+}
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Crypto {
+    pub symbol: String,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum TransactionType {
+    Buy,
+    Sell,
+    Dividend,
+    Deposit,
+    Withdrawal,
+    Fee,
+    Unknown,
+}

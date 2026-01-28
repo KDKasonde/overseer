@@ -1,21 +1,21 @@
 use super::Trading212;
-
-use serde::{de::Error, Deserialize};
+use rust_decimal::Decimal;
+use serde::Deserialize;
 
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenPosition {
-    pub average_price: f32,
-    pub current_price: f32,
+    pub average_price: Decimal,
+    pub current_price: Decimal,
     pub frontend: String,
-    pub fx_ppl: Option<f32>,
+    pub fx_ppl: Option<Decimal>,
     pub initial_fill_date: String,
-    pub max_buy: f32,
-    pub max_sell: f32,
-    pub pie_quantity: f32,
-    pub ppl: f32,
-    pub quantity: f32,
+    pub max_buy: Decimal,
+    pub max_sell: Decimal,
+    pub pie_quantity: Decimal,
+    pub ppl: Decimal,
+    pub quantity: Decimal,
     pub ticker: String,
 }
 

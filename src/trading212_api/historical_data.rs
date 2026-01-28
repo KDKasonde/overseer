@@ -1,4 +1,5 @@
 use super::Trading212;
+use rust_decimal::Decimal;
 
 use serde::Deserialize;
 
@@ -7,7 +8,7 @@ use serde::Deserialize;
 pub struct InstrumentTax {
     fill_id: String,
     name: String,
-    quantity: f32,
+    quantity: Decimal,
     time_charged: String,
 }
 
@@ -23,11 +24,11 @@ pub struct ReportDataIncluded {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoricalDividendItem {
-    amount: f32,
-    amount_in_euro: f32,
-    gross_amount_per_share: f32,
+    amount: Decimal,
+    amount_in_euro: Decimal,
+    gross_amount_per_share: Decimal,
     paid_on: String,
-    quantity: f32,
+    quantity: Decimal,
     reference: String,
     ticker: String,
     item_type: String,
@@ -51,20 +52,20 @@ pub struct HistoricalOrder {
     pub date_executed: String,
     date_modified: String,
     executor: String,
-    fill_cost: f32,
+    fill_cost: Decimal,
     fill_id: i64,
-    fill_price: f32,
-    fill_result: f32,
+    fill_price: Decimal,
+    fill_result: Decimal,
     fill_item_type: String,
-    pub filled_quantity: f32,
-    pub filled_value: f32,
+    pub filled_quantity: Decimal,
+    pub filled_value: Decimal,
     id: i64,
-    pub limit_price: f32,
-    ordered_quantity: f32,
-    ordered_value: f32,
+    pub limit_price: Decimal,
+    ordered_quantity: Decimal,
+    ordered_value: Decimal,
     parent_order: i64,
     status: String,
-    stop_price: f32,
+    stop_price: Decimal,
     taxes: Vec<InstrumentTax>,
     pub ticker: String,
     time_validity: String,
@@ -74,7 +75,7 @@ pub struct HistoricalOrder {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
-    amount: f32,
+    amount: Decimal,
     date_time: String,
     reference: String,
     item_type: String,

@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+src/__init__.py
+src/main.py
+src/python_parser.egg-info/PKG-INFO
+src/python_parser.egg-info/SOURCES.txt
+src/python_parser.egg-info/dependency_links.txt
+src/python_parser.egg-info/requires.txt
+src/python_parser.egg-info/top_level.txt
